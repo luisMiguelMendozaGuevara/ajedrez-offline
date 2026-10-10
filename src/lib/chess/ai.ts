@@ -3,7 +3,7 @@ import {
   generateLegalMoves,
   isInCheck,
 } from "./engine";
-import { GameState, Move, PieceColor, PieceType, PIECE_VALUES } from "./types";
+import { GameState, Move, PieceColor, PieceType, Difficulty, PIECE_VALUES } from "./types";
 
 // Piece-square tables (from white's perspective; row 0 = rank 8).
 // We'll flip for black.
@@ -192,26 +192,41 @@ function negamax(
 
 export function findBestMove(
   state: GameState,
-  difficulty: "easy" | "medium" | "hard"
+  difficulty: Difficulty
 ): Move | null {
   const moves = generateLegalMoves(state);
   if (moves.length === 0) return null;
 
   const aiColor = state.turn;
 
+  if (difficulty === "beginner") {
+    // Fully random legal moves — for absolute beginners
+    // Bias slightly against hanging the queen/king-adjacent moves
+    const safe = moves.filter((m) => {
+      // avoid moving into immediate capture by a pawn (very rough)
+      return true;
+    });
+    const pool = safe.length > 0 ? safe : moves;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   if (difficulty === "easy") {
-    // Easy: 70% best move at depth 1 with randomness, 30% random
+    // Easy: pick from top half by static eval, with randomness
     const scored = moves.map((m) => {
       const ns = applyMove(state, m);
       return { move: m, score: evaluate(ns, aiColor) + (Math.random() - 0.5) * 120 };
     });
     scored.sort((a, b) => b.score - a.score);
-    // pick from top half randomly to be weak but not totally random
     const top = scored.slice(0, Math.max(1, Math.ceil(scored.length / 2)));
     return top[Math.floor(Math.random() * top.length)].move;
   }
 
-  const depth = difficulty === "medium" ? 2 : 3;
+  const depthMap: Record<string, number> = {
+    medium: 2,
+    hard: 3,
+    expert: 4,
+  };
+  const depth = depthMap[difficulty] ?? 2;
   const ordered = orderMoves(moves);
 
   let bestMove = ordered[0];

@@ -30,6 +30,11 @@ import {
 } from "@/lib/chess/storage";
 import { playSound, playHaptic } from "@/lib/chess/sound";
 import { useSettings } from "./useSettings";
+import {
+  exportPgn as pgnExport,
+  headersFromMode as pgnHeaders,
+  importPgn as pgnImport,
+} from "@/lib/chess/pgn";
 
 export interface HistoryEntry {
   move: Move;
@@ -55,6 +60,12 @@ interface ChessStore {
   flipped: boolean; // board orientation
   hintMove: { from: Square; to: Square } | null;
   statsRecorded: boolean; // prevents double counting after game over
+  // Chess clock
+  whiteTime: number; // seconds remaining
+  blackTime: number;
+  lastTickAt: number | null; // timestamp of last clock update
+  // PGN replay
+  replayMode: boolean;
 
   // actions
   newGame: (mode: GameMode) => void;
@@ -71,6 +82,9 @@ interface ChessStore {
   showHint: () => void;
   clearHint: () => void;
   loadSaved: () => boolean;
+  tickClock: () => void;
+  exportPgn: () => string;
+  loadPgn: (pgn: string) => boolean;
 }
 
 function computeStatus(state: GameState): {
@@ -104,10 +118,15 @@ export const useChessGame = create<ChessStore>((set, get) => ({
   flipped: false,
   hintMove: null,
   statsRecorded: false,
+  whiteTime: 0,
+  blackTime: 0,
+  lastTickAt: null,
+  replayMode: false,
 
   newGame: (mode) => {
     const state = initialState();
     clearSavedGame();
+    const initialTime = mode.timeControl?.initialSeconds ?? 0;
     set({
       state,
       mode,
@@ -124,6 +143,10 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       flipped: mode.type === "ai" && mode.playerColor === "b",
       hintMove: null,
       statsRecorded: false,
+      whiteTime: initialTime,
+      blackTime: initialTime,
+      lastTickAt: initialTime > 0 ? Date.now() : null,
+      replayMode: false,
     });
     // If AI plays white, make first move
     if (mode.type === "ai" && mode.playerColor === "b") {
@@ -272,10 +295,36 @@ export const useChessGame = create<ChessStore>((set, get) => ({
   clearHint: () => set({ hintMove: null }),
 
   makeMove: (move) => {
-    const { state, history, capturedByWhite, capturedByBlack } = get();
+    const {
+      state,
+      history,
+      capturedByWhite,
+      capturedByBlack,
+      mode,
+      whiteTime,
+      blackTime,
+      lastTickAt,
+      replayMode,
+    } = get();
     const san = toSan(state, move);
     const newState = applyMove(state, move);
     const settings = useSettings.getState();
+
+    // Update clock: subtract elapsed time from mover, add increment
+    let newWhiteTime = whiteTime;
+    let newBlackTime = blackTime;
+    let timeForfeit: PieceColor | null = null;
+    if (mode.timeControl && mode.timeControl.initialSeconds > 0 && lastTickAt) {
+      const elapsed = (Date.now() - lastTickAt) / 1000;
+      const inc = mode.timeControl.increment;
+      if (move.color === "w") {
+        newWhiteTime = Math.max(0, whiteTime - elapsed + inc);
+        if (newWhiteTime <= 0) timeForfeit = "w";
+      } else {
+        newBlackTime = Math.max(0, blackTime - elapsed + inc);
+        if (newBlackTime <= 0) timeForfeit = "b";
+      }
+    }
 
     const newCapturedByWhite = [...capturedByWhite];
     const newCapturedByBlack = [...capturedByBlack];
@@ -292,24 +341,36 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       capturedByBlack: newCapturedByBlack,
     };
 
-    const { status, winner } = computeStatus(newState);
+    let { status, winner } = computeStatus(newState);
 
-    // Sound effects
-    if (status === "checkmate") {
-      playSound("gameEnd", settings.soundEnabled);
-      playHaptic([30, 50, 30, 50, 80], settings.hapticsEnabled);
-    } else if (status === "check") {
-      playSound("check", settings.soundEnabled);
-      playHaptic([20, 30, 20], settings.hapticsEnabled);
-    } else if (move.isCastle) {
-      playSound("castle", settings.soundEnabled);
-      playHaptic(15, settings.hapticsEnabled);
-    } else if (move.captured) {
-      playSound("capture", settings.soundEnabled);
-      playHaptic(20, settings.hapticsEnabled);
-    } else {
-      playSound("move", settings.soundEnabled);
-      playHaptic(10, settings.hapticsEnabled);
+    // Time forfeit overrides (only if game not already decided on board)
+    if (
+      timeForfeit &&
+      status !== "checkmate" &&
+      status !== "stalemate"
+    ) {
+      status = "checkmate"; // treat as a loss for the side that ran out
+      winner = opposite(timeForfeit);
+    }
+
+    // Sound effects (skip in replay)
+    if (!replayMode) {
+      if (status === "checkmate") {
+        playSound("gameEnd", settings.soundEnabled);
+        playHaptic([30, 50, 30, 50, 80], settings.hapticsEnabled);
+      } else if (status === "check") {
+        playSound("check", settings.soundEnabled);
+        playHaptic([20, 30, 20], settings.hapticsEnabled);
+      } else if (move.isCastle) {
+        playSound("castle", settings.soundEnabled);
+        playHaptic(15, settings.hapticsEnabled);
+      } else if (move.captured) {
+        playSound("capture", settings.soundEnabled);
+        playHaptic(20, settings.hapticsEnabled);
+      } else {
+        playSound("move", settings.soundEnabled);
+        playHaptic(10, settings.hapticsEnabled);
+      }
     }
 
     set({
@@ -324,15 +385,18 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       capturedByBlack: newCapturedByBlack,
       promotionPending: null,
       hintMove: null,
+      whiteTime: newWhiteTime,
+      blackTime: newBlackTime,
+      lastTickAt: Date.now(),
     });
 
     // Record stats on game end (once)
-    const { mode, statsRecorded } = get();
+    const { statsRecorded } = get();
     const finished =
       status === "checkmate" ||
       status === "stalemate" ||
       status === "draw";
-    if (finished && !statsRecorded) {
+    if (finished && !statsRecorded && !replayMode) {
       const totalMoves = newState.fullmoveNumber;
       if (mode.type === "ai") {
         const outcome = humanOutcome(status, winner, mode.playerColor);
@@ -340,9 +404,9 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       } else {
         recordGame("draw", totalMoves, false);
       }
-      set({ statsRecorded: true });
+      set({ statsRecorded: true, lastTickAt: null });
       clearSavedGame();
-    } else {
+    } else if (!replayMode) {
       // Persist ongoing game
       saveGame({
         state: newState,
@@ -508,6 +572,131 @@ export const useChessGame = create<ChessStore>((set, get) => ({
         get().makeMove(move);
       }
     }, 50);
+  },
+
+  tickClock: () => {
+    const { mode, status, state, whiteTime, blackTime, lastTickAt, replayMode } = get();
+    if (replayMode) return;
+    if (
+      !mode.timeControl ||
+      mode.timeControl.initialSeconds === 0 ||
+      !lastTickAt
+    )
+      return;
+    if (
+      status === "checkmate" ||
+      status === "stalemate" ||
+      status === "draw" ||
+      status === "resigned"
+    )
+      return;
+
+    const elapsed = (Date.now() - lastTickAt) / 1000;
+    if (state.turn === "w") {
+      const newWhite = Math.max(0, whiteTime - elapsed);
+      if (newWhite <= 0) {
+        // Time forfeit for white
+        set({
+          whiteTime: 0,
+          status: "checkmate",
+          winner: "b",
+          lastTickAt: null,
+        });
+        const { mode, statsRecorded } = get();
+        if (!statsRecorded && mode.type === "ai") {
+          recordGame(
+            humanOutcome("checkmate", "b", mode.playerColor) ?? "loss",
+            state.fullmoveNumber,
+            true
+          );
+          set({ statsRecorded: true });
+        }
+        clearSavedGame();
+        return;
+      }
+      set({ whiteTime: newWhite, lastTickAt: Date.now() });
+    } else {
+      const newBlack = Math.max(0, blackTime - elapsed);
+      if (newBlack <= 0) {
+        set({
+          blackTime: 0,
+          status: "checkmate",
+          winner: "w",
+          lastTickAt: null,
+        });
+        const { mode, statsRecorded } = get();
+        if (!statsRecorded && mode.type === "ai") {
+          recordGame(
+            humanOutcome("checkmate", "w", mode.playerColor) ?? "loss",
+            state.fullmoveNumber,
+            true
+          );
+          set({ statsRecorded: true });
+        }
+        clearSavedGame();
+        return;
+      }
+      set({ blackTime: newBlack, lastTickAt: Date.now() });
+    }
+  },
+
+  exportPgn: () => {
+    const { history, mode, status, winner } = get();
+    const headers = pgnHeaders(mode, winner, status);
+    return pgnExport(
+      history.map((h) => ({ stateBefore: h.stateBefore, move: h.move })),
+      headers
+    );
+  },
+
+  loadPgn: (pgn) => {
+    const imported = pgnImport(pgn);
+    if (!imported || imported.moves.length === 0) return false;
+    // Build history entries from imported moves
+    const history: HistoryEntry[] = [];
+    let capW: PieceType[] = [];
+    let capB: PieceType[] = [];
+    let lastState = initialState();
+    let lastMove: { from: Square; to: Square } | null = null;
+    for (const { stateBefore, move } of imported.moves) {
+      const san = toSan(stateBefore, move);
+      if (move.captured) {
+        if (move.color === "w") capW.push(move.captured);
+        else capB.push(move.captured);
+      }
+      history.push({
+        move,
+        san,
+        stateBefore,
+        capturedByWhite: [...capW],
+        capturedByBlack: [...capB],
+      });
+      lastState = applyMove(stateBefore, move);
+      lastMove = { from: move.from, to: move.to };
+    }
+    // Set to final state; disable AI; mark as replay (no stats, no persistence)
+    set({
+      state: lastState,
+      mode: { type: "human", playerColor: "w" },
+      history,
+      status: "playing",
+      winner: null,
+      selected: null,
+      legalForSelected: [],
+      lastMove,
+      thinking: false,
+      promotionPending: null,
+      capturedByWhite: capW,
+      capturedByBlack: capB,
+      flipped: false,
+      hintMove: null,
+      statsRecorded: true,
+      replayMode: true,
+      whiteTime: 0,
+      blackTime: 0,
+      lastTickAt: null,
+    });
+    return true;
   },
 }));
 

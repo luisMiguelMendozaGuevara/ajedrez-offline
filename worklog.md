@@ -96,3 +96,72 @@ Stage Summary (Ronda 1):
 - Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM.
 - Riesgo: el dev server se detiene entre comandos bash (sesión no persistente); se reinicia con `(setsid bun run dev </dev/null >/dev/null 2>&1 &)`.
 - Próximas mejoras recomendadas: reloj/timer de ajedrez, exportar/importar PGN, más niveles de dificultad, tutorial de apertura, modo "ajedrez a la ciega".
+
+---
+Task ID: R2 (cron review)
+Agent: Z.ai Code (cron webDevReview)
+Task: Revisión QA + añadir reloj de ajedrez, PGN, más dificultades, modo a la ciega.
+
+Estado del proyecto al iniciar (R2):
+- App estable con: motor completo, IA (fácil/medio/difícil), 2 modos, persistencia, estadísticas, sonidos, 5 temas de tablero, ajustes, pista.
+- Lint limpio, sin errores runtime.
+
+Work Log (Ronda 2 - Funcionalidades nuevas):
+- QA inicial con agent-browser (viewport 390x844): setup, partida, movimiento, todo OK, sin errores.
+- Extendidos tipos en `src/lib/chess/types.ts`:
+  - `Difficulty` ahora incluye 5 niveles: `beginner | easy | medium | hard | expert`.
+  - `TimeControl` interface (initialSeconds + increment Fischer).
+  - `TIME_PRESETS`: 5 controles (Sin tiempo ∞, Bala ⚡ 60s, Relámpago 🔥 3+2, Rápida ⏱ 10+5, Clásica ♟ 30min).
+  - `DIFFICULTY_META`: metadata (label, descripción, emoji) para cada nivel.
+- Actualizado `src/lib/chess/ai.ts`:
+  - `beginner`: movimientos completamente aleatorios legales.
+  - `expert`: minimax profundidad 4 (más fuerte que hard=3).
+  - Refactorizada función `findBestMove` con `Difficulty` type.
+- Creado `src/lib/chess/pgn.ts`:
+  - `exportPgn()`: genera PGN completo con cabeceras (Event, Site, Date, White, Black, Result, Mode, Difficulty, TimeControl) y movetext SAN.
+  - `importPgn()`: parsea PGN (cabeceras + movetext), maneja enroque (O-O/O-O-O), promociones (=Q), capturas (x), desambiguación, símbolos +/#. Re-emprime los movimientos desde la posición inicial.
+  - `headersFromMode()`: construye cabeceras desde GameMode + resultado.
+- Extendido `src/hooks/useChessGame.ts`:
+  - Estado: `whiteTime`, `blackTime`, `lastTickAt`, `replayMode`.
+  - `newGame`: inicializa relojes con timeControl.
+  - `makeMove`: descuenta tiempo del jugador que mueve, suma incremento Fischer, detecta pérdida por tiempo.
+  - `tickClock()`: decrementa el reloj del jugador en turno cada 250ms; al llegar a 0 → derrota por tiempo + graba stats.
+  - `exportPgn()` / `loadPgn()`: acciones para exportar/importar partidas.
+  - `loadPgn`: modo repetición (replayMode=true) → desactiva IA, stats y persistencia.
+  - Sonidos y vibración saltan en modo repetición.
+- Creado `src/components/chess/ChessClock.tsx`:
+  - Display monoespaciado con formato m:ss / h:mm:ss.
+  - Colores: verde (activo), ámbar (<10s), rojo (agotado).
+  - Animación de escala cuando está activo.
+  - Se actualiza cada 250ms vía interval + tickClock.
+- Actualizado `src/components/chess/PlayerBar.tsx`: integra ChessClock cuando hay timeControl.
+- Actualizado `src/components/chess/ChessBoard.tsx`: soporta prop `blindfold` → oculta piezas salvo la casilla seleccionada.
+- Renovado `src/components/chess/GameSetup.tsx`:
+  - 5 pills de dificultad con emoji + descripción dinámica.
+  - 5 pills de control de tiempo.
+  - Toggle de Ajedrez a la ciega (switch animado).
+  - Botón Importar PGN (input file oculto .pgn/.txt).
+- Renovado `src/components/chess/GameControls.tsx`:
+  - Botones Exportar PGN (copia al portapapeles o descarga .pgn) y Compartir (Web Share API).
+  - Banner de "Modo repetición PGN" cuando replayMode=true.
+  - Rendirse deshabilitado en replay.
+- Actualizado `src/app/page.tsx`: estado `blindfold`, wiring de handleStart/handleImportPgn, banner de modo a la ciega bajo el tablero.
+
+Verificación (Ronda 2):
+- Lint limpio (0 errores).
+- Setup renderiza las 5 dificultades (Principiante→Experto), 5 controles de tiempo (Bala, Relámpago...), toggle a la ciega, botón importar PGN ✓.
+- Partida con Relámpago (3:00): relojes visibles en PlayerBar, muestran 3:00 ✓.
+- PGN export: copia al portapapeles, toast "PGN copiado al portapapeles" ✓.
+- PGN import (Ruy Lopez 1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6): tablero carga posición final correcta (e4=♟, e5=♟, b5=♟), banner "Modo repetición" visible ✓.
+- Modo a la ciega: 0 piezas visibles en el tablero; al tocar e2 aparece el peón ♟; banner "Modo a la ciega activo" visible ✓ (VLM 9/10).
+- Experto (depth 4): responde en ~5s con Nc6 tras e4, sin errores ✓.
+- VLM setup screen: 8/10 (card-based, mobile-friendly, touch targets grandes).
+- VLM blindfold: 9/10 (board vacío, banner claro, controles visibles).
+- Sin errores de consola ni en dev.log.
+
+Stage Summary (Ronda 2):
+- Funcionalidades nuevas: reloj de ajedrez (5 controles incluyendo Fischer increment), 5 niveles de dificultad (Principiante→Experto), exportar PGN, importar PGN (con parser robusto), modo Ajedrez a la Ciega, compartir partida (Web Share API).
+- Mejoras de estilo: pills con emoji para dificultad/tiempo, switches animados, banner informativo de modo a la ciega, banner de modo repetición, clocks con colores semánticos.
+- Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (8/10 y 9/10).
+- Riesgo: expert mode (depth 4) tarda ~5s por movimiento (aceptable pero podría optimizarse con tabla de transposición en el futuro).
+- Próximas mejoras recomendadas: tabla de transposición para acelerar expert, tutorial de aperturas con partidas famosas, modo "análisis" con evaluación, notación algebraica explicada, logros/desafíos diarios.

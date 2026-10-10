@@ -11,9 +11,10 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 interface ChessBoardProps {
   size?: number;
+  blindfold?: boolean;
 }
 
-export function ChessBoard({ size }: ChessBoardProps) {
+export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   const {
     state,
     selected,
@@ -169,8 +170,8 @@ export function ChessBoard({ size }: ChessBoardProps) {
                     </span>
                   )}
 
-                  {/* piece */}
-                  {piece && (
+                  {/* piece (hidden in blindfold mode unless selected) */}
+                  {piece && (!blindfold || isSelected) && (
                     <motion.span
                       layoutId={`piece-${r}-${c}-${piece.type}-${piece.color}`}
                       className="relative z-10"

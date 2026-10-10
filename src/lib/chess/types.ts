@@ -57,9 +57,34 @@ export type GameStatus =
 
 export interface GameMode {
   type: "ai" | "human";
-  difficulty?: "easy" | "medium" | "hard";
+  difficulty?: Difficulty;
   playerColor: PieceColor; // color the human plays (for ai mode)
+  timeControl?: TimeControl; // optional chess clock
 }
+
+export type Difficulty = "beginner" | "easy" | "medium" | "hard" | "expert";
+
+export interface TimeControl {
+  initialSeconds: number; // per side
+  increment: number; // increment per move (seconds, Fischer)
+}
+
+// Preset time controls (in seconds)
+export const TIME_PRESETS: { id: string; label: string; seconds: number; increment: number; emoji: string }[] = [
+  { id: "none", label: "Sin tiempo", seconds: 0, increment: 0, emoji: "∞" },
+  { id: "bullet", label: "Bala", seconds: 60, increment: 0, emoji: "⚡" },
+  { id: "blitz", label: "Relámpago", seconds: 180, increment: 2, emoji: "🔥" },
+  { id: "rapid", label: "Rápida", seconds: 600, increment: 5, emoji: "⏱" },
+  { id: "classic", label: "Clásica", seconds: 1800, increment: 0, emoji: "♟" },
+];
+
+export const DIFFICULTY_META: { id: Difficulty; label: string; description: string; emoji: string }[] = [
+  { id: "beginner", label: "Principiante", description: "Movimientos aleatorios", emoji: "🌱" },
+  { id: "easy", label: "Fácil", description: "Profundidad 1 + aleatorio", emoji: "✨" },
+  { id: "medium", label: "Medio", description: "Profundidad 2", emoji: "🧠" },
+  { id: "hard", label: "Difícil", description: "Profundidad 3", emoji: "⚔️" },
+  { id: "expert", label: "Experto", description: "Profundidad 4", emoji: "👑" },
+];
 
 export const PIECE_VALUES: Record<PieceType, number> = {
   p: 100,

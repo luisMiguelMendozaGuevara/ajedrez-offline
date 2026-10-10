@@ -9,6 +9,8 @@ import {
   FlipHorizontal,
   Lightbulb,
   Settings2,
+  Download,
+  Share2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -22,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface GameControlsProps {
   onNewGame: () => void;
@@ -39,8 +42,10 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
   const mode = useChessGame((s) => s.mode);
   const state = useChessGame((s) => s.state);
   const thinking = useChessGame((s) => s.thinking);
+  const exportPgn = useChessGame((s) => s.exportPgn);
+  const replayMode = useChessGame((s) => s.replayMode);
 
-  const canUndo = history.length > 0 && status !== "resigned";
+  const canUndo = history.length > 0 && status !== "resigned" && !replayMode;
   const gameEnded =
     status === "checkmate" ||
     status === "stalemate" ||
@@ -51,7 +56,46 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
     state.turn === mode.playerColor &&
     !gameEnded &&
     !thinking &&
-    !hintMove;
+    !hintMove &&
+    !replayMode;
+  const canExport = history.length > 0;
+
+  const handleExport = async () => {
+    const pgn = exportPgn();
+    try {
+      await navigator.clipboard.writeText(pgn);
+      toast.success("PGN copiado al portapapeles");
+    } catch {
+      // Fallback: download as file
+      const blob = new Blob([pgn], { type: "application/x-chess-pgn" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `partida-${Date.now()}.pgn`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PGN descargado");
+    }
+  };
+
+  const handleShare = async () => {
+    const pgn = exportPgn();
+    const text = `Mi partida de ajedrez:\n\n${pgn}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Partida de ajedrez", text });
+      } catch {
+        // user cancelled
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success("Partida copiada para compartir");
+      } catch {
+        toast.error("No se pudo compartir");
+      }
+    }
+  };
 
   return (
     <div className="grid grid-cols-6 gap-1.5">
@@ -86,16 +130,32 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
         variant="primary"
       />
 
-      <div className="col-span-6">
+      <div className="col-span-6 grid grid-cols-3 gap-1.5">
+        <ControlButton
+          onClick={handleExport}
+          disabled={!canExport}
+          icon={<Download className="h-4 w-4" />}
+          label="Exportar PGN"
+          className="col-span-1"
+        />
+        <ControlButton
+          onClick={handleShare}
+          disabled={!canExport}
+          icon={<Share2 className="h-4 w-4" />}
+          label="Compartir"
+          className="col-span-1"
+        />
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="w-full h-9 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/50"
-              disabled={gameEnded}
+              className="col-span-1 h-10 flex-col gap-0.5 px-1 py-1.5 text-[10px] font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/50"
+              disabled={gameEnded || replayMode}
             >
-              <Flag className="h-3.5 w-3.5 mr-1.5" />
+              <span className="h-4 flex items-center justify-center">
+                <Flag className="h-4 w-4" />
+              </span>
               Rendirse
             </Button>
           </AlertDialogTrigger>
@@ -119,6 +179,12 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+
+      {replayMode && (
+        <div className="col-span-6 rounded-lg bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 text-[11px] text-sky-600 dark:text-sky-400 text-center font-medium">
+          Modo repetición PGN · estadísticas y guardado desactivados
+        </div>
+      )}
     </div>
   );
 }

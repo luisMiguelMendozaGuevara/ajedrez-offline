@@ -1,42 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { GameMode, PieceColor } from "@/lib/chess/types";
+import {
+  GameMode,
+  PieceColor,
+  Difficulty,
+  DIFFICULTY_META,
+  TIME_PRESETS,
+} from "@/lib/chess/types";
 import { motion } from "framer-motion";
 import {
   Bot,
   Users,
   Crown,
-  Sparkles,
-  Swords,
-  Shield,
-  Brain,
-  Zap,
   Play,
+  Clock,
+  Upload,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useChessGame } from "@/hooks/useChessGame";
 
 interface GameSetupProps {
-  onStart: (mode: GameMode) => void;
+  onStart: (mode: GameMode, blindfold: boolean) => void;
+  onImportPgn: (pgn: string) => void;
 }
 
 type SetupType = "ai" | "human";
 
-export function GameSetup({ onStart }: GameSetupProps) {
+export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
   const [type, setType] = useState<SetupType>("ai");
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
-    "medium"
-  );
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [playerColor, setPlayerColor] = useState<PieceColor>("w");
+  const [timePresetId, setTimePresetId] = useState("none");
+  const [blindfold, setBlindfold] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadPgn = useChessGame((s) => s.loadPgn);
 
   const handleStart = () => {
+    const preset = TIME_PRESETS.find((p) => p.id === timePresetId)!;
+    const timeControl =
+      preset.id === "none"
+        ? undefined
+        : { initialSeconds: preset.seconds, increment: preset.increment };
     if (type === "ai") {
-      onStart({ type: "ai", difficulty, playerColor });
+      onStart(
+        { type: "ai", difficulty, playerColor, timeControl },
+        blindfold
+      );
     } else {
-      onStart({ type: "human", playerColor: "w" });
+      onStart({ type: "human", playerColor: "w", timeControl }, blindfold);
     }
+  };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      const ok = loadPgn(text);
+      if (ok) {
+        toast.success(`Partida PGN cargada (${file.name})`);
+        onImportPgn(text);
+      } else {
+        toast.error("No se pudo leer el PGN. Verifica el formato.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   return (
@@ -83,26 +119,20 @@ export function GameSetup({ onStart }: GameSetupProps) {
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
               Dificultad
             </h3>
-            <div className="grid grid-cols-3 gap-2">
-              <DifficultyCard
-                active={difficulty === "easy"}
-                onClick={() => setDifficulty("easy")}
-                icon={<Sparkles className="h-4 w-4" />}
-                label="Fácil"
-              />
-              <DifficultyCard
-                active={difficulty === "medium"}
-                onClick={() => setDifficulty("medium")}
-                icon={<Brain className="h-4 w-4" />}
-                label="Medio"
-              />
-              <DifficultyCard
-                active={difficulty === "hard"}
-                onClick={() => setDifficulty("hard")}
-                icon={<Swords className="h-4 w-4" />}
-                label="Difícil"
-              />
+            <div className="grid grid-cols-5 gap-1.5">
+              {DIFFICULTY_META.map((d) => (
+                <DifficultyPill
+                  key={d.id}
+                  active={difficulty === d.id}
+                  onClick={() => setDifficulty(d.id)}
+                  emoji={d.emoji}
+                  label={d.label}
+                />
+              ))}
             </div>
+            <p className="mt-2 text-[11px] text-muted-foreground text-center">
+              {DIFFICULTY_META.find((d) => d.id === difficulty)?.description}
+            </p>
 
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-3 px-1">
               Tu color
@@ -137,12 +167,102 @@ export function GameSetup({ onStart }: GameSetupProps) {
               <Users className="h-5 w-5 text-violet-500 mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Dos jugadores se turnan en el mismo dispositivo. Las blancas
-                mueven primero. Puedes girar el tablero con el botón
-                correspondiente para que cada jugador lo vea desde su lado.
+                mueven primero. Usa el botón Girar para que cada jugador vea el
+                tablero desde su lado.
               </p>
             </div>
           </motion.div>
         )}
+
+        {/* Time control */}
+        <div className="px-4 pb-4">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
+            <Clock className="h-3.5 w-3.5" />
+            Control de tiempo
+          </h3>
+          <div className="grid grid-cols-5 gap-1.5">
+            {TIME_PRESETS.map((p) => (
+              <TimePill
+                key={p.id}
+                active={timePresetId === p.id}
+                onClick={() => setTimePresetId(p.id)}
+                emoji={p.emoji}
+                label={p.label}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Blindfold toggle */}
+        <div className="px-4 pb-4">
+          <button
+            onClick={() => setBlindfold(!blindfold)}
+            className={cn(
+              "w-full flex items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all",
+              blindfold
+                ? "border-amber-500 bg-amber-500/10"
+                : "border-border bg-card hover:border-border/80"
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-lg",
+                  blindfold
+                    ? "bg-amber-500 text-white"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {blindfold ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold">Ajedrez a la ciega</div>
+                <div className="text-[10px] text-muted-foreground">
+                  Oculta las piezas para entrenar la memoria
+                </div>
+              </div>
+            </div>
+            <div
+              className={cn(
+                "relative h-6 w-11 rounded-full transition-colors shrink-0",
+                blindfold ? "bg-amber-500" : "bg-muted-foreground/30"
+              )}
+            >
+              <motion.span
+                layout
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className={cn(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md",
+                  blindfold ? "right-0.5" : "left-0.5"
+                )}
+              />
+            </div>
+          </button>
+        </div>
+
+        {/* PGN import */}
+        <div className="px-4 pb-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pgn,.txt"
+            onChange={handleFile}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-9 text-xs"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            Importar partida PGN
+          </Button>
+        </div>
 
         {/* Start button */}
         <div className="p-4 pt-2">
@@ -207,44 +327,64 @@ function ModeCard({
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-[11px] text-muted-foreground">{desc}</div>
       </div>
-      {active && (
-        <motion.div
-          layoutId={`mode-${accent}`}
-          className="absolute inset-0 rounded-xl ring-2 ring-offset-2 ring-offset-background pointer-events-none"
-          style={{
-            // @ts-expect-error css var
-            "--tw-ring-color":
-              accent === "emerald" ? "rgb(16 185 129)" : "rgb(139 92 246)",
-          }}
-        />
-      )}
     </button>
   );
 }
 
-function DifficultyCard({
+function DifficultyPill({
   active,
   onClick,
-  icon,
+  emoji,
   label,
 }: {
   active: boolean;
   onClick: () => void;
-  icon: React.ReactNode;
+  emoji: string;
   label: string;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-xl border-2 py-3 transition-all",
+        "flex flex-col items-center gap-0.5 rounded-lg border-2 py-2 px-1 transition-all",
         active
-          ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          ? "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400"
           : "border-border bg-card text-muted-foreground hover:border-border"
       )}
     >
-      {icon}
-      <span className="text-xs font-semibold">{label}</span>
+      <span className="text-base leading-none">{emoji}</span>
+      <span className="text-[9px] font-semibold leading-tight text-center">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function TimePill({
+  active,
+  onClick,
+  emoji,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  emoji: string;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center gap-0.5 rounded-lg border-2 py-2 px-1 transition-all",
+        active
+          ? "border-sky-500 bg-sky-500/15 text-sky-600 dark:text-sky-400"
+          : "border-border bg-card text-muted-foreground hover:border-border"
+      )}
+    >
+      <span className="text-base leading-none">{emoji}</span>
+      <span className="text-[9px] font-semibold leading-tight text-center">
+        {label}
+      </span>
     </button>
   );
 }
@@ -289,6 +429,3 @@ function ColorCard({
     </button>
   );
 }
-
-void Shield;
-void Zap;

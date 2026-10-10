@@ -2,6 +2,7 @@
 
 import { useChessGame } from "@/hooks/useChessGame";
 import { CapturedPieces } from "./CapturedPieces";
+import { ChessClock } from "./ChessClock";
 import { PieceColor, PieceType } from "@/lib/chess/types";
 import { cn } from "@/lib/utils";
 import { Crown, Bot, User, Users } from "lucide-react";
@@ -13,12 +14,12 @@ interface PlayerBarProps {
 }
 
 export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
-  const state = useChessGame((s) => s.state);
   const turn = useChessGame((s) => s.state.turn);
   const capturedByWhite = useChessGame((s) => s.capturedByWhite);
   const capturedByBlack = useChessGame((s) => s.capturedByBlack);
   const status = useChessGame((s) => s.status);
   const thinking = useChessGame((s) => s.thinking);
+  const timeControl = useChessGame((s) => s.mode.timeControl);
 
   const isActive = turn === color && status !== "checkmate" && status !== "stalemate" && status !== "draw" && status !== "resigned";
 
@@ -27,6 +28,7 @@ export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
   const oppCaptured: PieceType[] = color === "w" ? capturedByBlack : capturedByWhite;
 
   const Icon = icon === "bot" ? Bot : icon === "users" ? Users : User;
+  const hasClock = !!timeControl && timeControl.initialSeconds > 0;
 
   return (
     <div
@@ -68,19 +70,22 @@ export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        {hasClock && <ChessClock color={color} />}
         {thinking && isActive && (
           <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             …
           </span>
         )}
-        <span
-          className={cn(
-            "h-2.5 w-2.5 rounded-full",
-            color === "w" ? "bg-slate-100 ring-1 ring-slate-400" : "bg-slate-900",
-            isActive && "ring-2 ring-emerald-500/70"
-          )}
-        />
+        {!hasClock && (
+          <span
+            className={cn(
+              "h-2.5 w-2.5 rounded-full",
+              color === "w" ? "bg-slate-100 ring-1 ring-slate-400" : "bg-slate-900",
+              isActive && "ring-2 ring-emerald-500/70"
+            )}
+          />
+        )}
       </div>
     </div>
   );

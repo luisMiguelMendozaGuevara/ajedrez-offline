@@ -37,6 +37,7 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hasResume, setHasResume] = useState(false);
+  const [blindfold, setBlindfold] = useState(false);
 
   const newGame = useChessGame((s) => s.newGame);
   const mode = useChessGame((s) => s.mode);
@@ -57,9 +58,16 @@ export default function Home() {
     }
   }, []);
 
-  const handleStart = (m: GameMode) => {
+  const handleStart = (m: GameMode, bf: boolean) => {
     newGame(m);
+    setBlindfold(bf);
     setGameStarted(true);
+    setHasResume(false);
+  };
+
+  const handleImportPgn = (_pgn: string) => {
+    setGameStarted(true);
+    setBlindfold(false);
     setHasResume(false);
   };
 
@@ -77,6 +85,7 @@ export default function Home() {
 
   const handleNewGame = () => {
     setGameStarted(false);
+    setBlindfold(false);
     useChessGame.getState().clearSelection();
     setHasResume(false);
   };
@@ -138,7 +147,7 @@ export default function Home() {
                 </motion.div>
               )}
               <div className="w-full mt-6">
-                <GameSetup onStart={handleStart} />
+                <GameSetup onStart={handleStart} onImportPgn={handleImportPgn} />
               </div>
             </motion.div>
           ) : (
@@ -156,7 +165,13 @@ export default function Home() {
                 icon={getIcon(topColor)}
               />
 
-              <ChessBoard />
+              <ChessBoard blindfold={blindfold} />
+
+              {blindfold && (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-600 dark:text-amber-400 text-center font-medium flex items-center justify-center gap-1.5">
+                  <span>♟</span> Modo a la ciega activo · toca una pieza para verla
+                </div>
+              )}
 
               <PlayerBar
                 color={bottomColor}
