@@ -26,7 +26,12 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
     status,
     thinking,
     hintMove,
+    history,
   } = useChessGame();
+
+  // Determine if the last move was a capture (for flash animation)
+  const lastEntry = history[history.length - 1];
+  const lastWasCapture = !!lastEntry?.move.captured;
 
   const boardThemeId = useSettings((s) => s.boardTheme);
   const showCoordinates = useSettings((s) => s.showCoordinates);
@@ -123,6 +128,16 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                   {/* last move highlight */}
                   {(isLastFrom || isLastTo) && (
                     <span className="absolute inset-0 bg-amber-300/50 pointer-events-none" />
+                  )}
+                  {/* capture flash on the target square */}
+                  {isLastTo && lastWasCapture && (
+                    <motion.span
+                      key={`cap-${history.length}`}
+                      className="absolute inset-0 pointer-events-none rounded-sm"
+                      initial={{ boxShadow: "inset 0 0 0 9999px rgba(244,63,94,0.55)" }}
+                      animate={{ boxShadow: "inset 0 0 0 9999px rgba(244,63,94,0)" }}
+                      transition={{ duration: 0.7 }}
+                    />
                   )}
                   {/* hint highlight */}
                   {(isHintFrom || isHintTo) && (

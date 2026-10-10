@@ -207,3 +207,51 @@ Stage Summary (Ronda 3):
 - Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (todas las puntuaciones 8-9/10).
 - Riesgo: el set de puzzles es pequeño (5); conviene añadir más variedad y puzzles M2/M3 reales.
 - Próximas mejoras recomendadas: más puzzles (M2/M3 verificados), tutorial de aperturas interactivo, notación algebraica explicada con tooltips, tabla de transposición para IA expert, modo "repasar partida" paso a paso.
+
+---
+Task ID: R4 (cron review)
+Agent: Z.ai Code (cron webDevReview)
+Task: Revisión QA + añadir tutorial de aperturas, tooltips SAN, animación de captura.
+
+Estado del proyecto al iniciar (R4):
+- App estable con: motor completo, IA (5 niveles), 2 modos, persistencia, estadísticas, sonidos, 5 temas, ajustes, pista, reloj, PGN export/import, modo a la ciega, desafío diario (5 puzzles), 12 logros, barra de evaluación.
+- Lint limpio, sin errores runtime.
+
+Work Log (Ronda 4 - Aprendizaje + microinteracciones):
+- QA inicial: servidor HTTP 200, lint limpio, setup renderiza sin errores.
+- Creado `src/lib/chess/openings.ts`: 4 aperturas famosas (Ruy López C60, Italiana C50, Siciliana B20, Gambito de Dama D06) con movimientos SAN + comentarios didácticos para cada jugada. Función buildOpeningState(opening, ply) que reconstruye la posición en cualquier punto.
+- Creado `src/components/chess/OpeningTutorialDialog.tsx`:
+  - Selector de aperturas con tabs horizontales (nombre + código ECO).
+  - Tablero que muestra la posición actual.
+  - Controles ◀ ▶ ⟲ (anterior, siguiente, reiniciar).
+  - Barra de progreso animada (gradiente indigo→purple).
+  - Comentario explicativo de la próxima jugada (con SAN resaltado).
+  - Modo interactivo "Probar": el jugador reproduce la jugada correcta; feedback toast ✓/✗.
+  - Lista expandible de todas las jugadas (clickeable para saltar).
+  - Contador "Jugada X / N".
+- Renovado `src/components/chess/MoveHistory.tsx`:
+  - Tooltips al pasar el ratón/sostener sobre cada jugada SAN con descripción legible ("Caballo a f3", "Alfil captura Dama en d5", "¡Jaque!", "¡Jaque mate!").
+  - Animación de highlight verde en la última jugada (fade out).
+  - Usando TooltipProvider + Tooltip + TooltipContent de shadcn/ui.
+- Mejorado `src/components/chess/ChessBoard.tsx`:
+  - Animación de captura: flash rojo (rose-500) en la casilla destino cuando se captura una pieza, con fade out de 0.7s.
+  - Trackea `history` para detectar si el último movimiento fue captura.
+- Actualizado `src/app/page.tsx`:
+  - Quick-access cards ahora 3 en grid (Desafío sky / Aprender indigo / Logros amber) en formato compacto vertical.
+  - Estado `showOpenings`, diálogo `OpeningTutorialDialog` integrado.
+  - QuickCard refactorizado para soportar `compact` y acento `indigo`.
+
+Verificación (Ronda 4):
+- Lint limpio (0 errores).
+- Setup renderiza las 3 quick cards (Desafío, Aprender, Logros) ✓ (VLM 9/10).
+- Tutorial de aperturas: diálogo abre con 4 aperturas (Ruy López, Italiana, Siciliana, Gambito de Dama), tablero visible, navegación ◀▶ funciona (avanzado a jugada 6/12 = Bb5), comentario explicativo visible ✓ (VLM 8/10).
+- Historial con SAN: tras jugar e4, Nf3 etc., el historial muestra las jugadas en notación algebraica ✓.
+- Animación de captura: jugada Nxe5 (caballo captura peón en e5) → flash rojo en e5, caballo blanco queda en e5 ✓.
+- Sin errores de consola ni en dev.log.
+
+Stage Summary (Ronda 4):
+- Funcionalidades nuevas: Tutorial de aperturas interactivo (4 aperturas famosas con modo demo + modo "Probar"), tooltips explicativos de notación algebraica en el historial, animación de captura (flash rojo).
+- Mejoras de estilo: quick cards compactas en grid de 3 con gradientes, barra de progreso animada en tutorial, highlight verde en última jugada del historial, flash de captura.
+- Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (9/10 setup, 8/10 openings).
+- Riesgo: el set de aperturas es pequeño (4); conviene añadir más (Francesa, Caro-Kann, Pirc, etc.).
+- Próximas mejoras recomendadas: más aperturas (5-8), modo "repasar partida" paso a paso con controles ◀▶ en la partida jugada, tabla de transposición para IA expert, puzzles M2/M3 verificados, pieza de audio para captura/mate.

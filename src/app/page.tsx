@@ -13,6 +13,7 @@ import { SettingsDialog } from "@/components/chess/SettingsDialog";
 import { DailyPuzzleDialog } from "@/components/chess/DailyPuzzleDialog";
 import { AchievementsDialog } from "@/components/chess/AchievementsDialog";
 import { EvalBar } from "@/components/chess/EvalBar";
+import { OpeningTutorialDialog } from "@/components/chess/OpeningTutorialDialog";
 import { GameMode, PieceColor } from "@/lib/chess/types";
 import { checkNewAchievements } from "@/lib/chess/achievements";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +27,7 @@ import {
   Puzzle as PuzzleIcon,
   Award,
   BarChart3,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +47,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPuzzle, setShowPuzzle] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showOpenings, setShowOpenings] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [blindfold, setBlindfold] = useState(false);
   const [showEval, setShowEval] = useState(false);
@@ -187,21 +190,31 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* Quick-access row: Desafío diario + Logros */}
-              <div className="grid grid-cols-2 gap-2.5 w-full max-w-md mt-4">
+              {/* Quick-access row: Desafío diario + Aprender + Logros */}
+              <div className="grid grid-cols-3 gap-2 w-full max-w-md mt-4">
                 <QuickCard
                   onClick={() => setShowPuzzle(true)}
-                  icon={<PuzzleIcon className="h-5 w-5" />}
-                  title="Desafío diario"
-                  desc="Puzzles de mate"
+                  icon={<PuzzleIcon className="h-4 w-4" />}
+                  title="Desafío"
+                  desc="Mate diario"
                   accent="sky"
+                  compact
+                />
+                <QuickCard
+                  onClick={() => setShowOpenings(true)}
+                  icon={<GraduationCap className="h-4 w-4" />}
+                  title="Aprender"
+                  desc="Aperturas"
+                  accent="indigo"
+                  compact
                 />
                 <QuickCard
                   onClick={() => setShowAchievements(true)}
-                  icon={<Award className="h-5 w-5" />}
+                  icon={<Award className="h-4 w-4" />}
                   title="Logros"
-                  desc="Insignias y metas"
+                  desc="Insignias"
                   accent="amber"
+                  compact
                 />
               </div>
 
@@ -319,6 +332,10 @@ export default function Home() {
         open={showAchievements}
         onOpenChange={setShowAchievements}
       />
+      <OpeningTutorialDialog
+        open={showOpenings}
+        onOpenChange={setShowOpenings}
+      />
     </div>
   );
 }
@@ -424,36 +441,52 @@ function QuickCard({
   title,
   desc,
   accent,
+  compact = false,
 }: {
   onClick: () => void;
   icon: React.ReactNode;
   title: string;
   desc: string;
-  accent: "sky" | "amber";
+  accent: "sky" | "amber" | "indigo";
+  compact?: boolean;
 }) {
+  const borderClass =
+    accent === "sky"
+      ? "border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
+      : accent === "amber"
+        ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20"
+        : "border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20";
+  const gradClass =
+    accent === "sky"
+      ? "bg-gradient-to-br from-sky-500 to-indigo-500"
+      : accent === "amber"
+        ? "bg-gradient-to-br from-amber-500 to-orange-500"
+        : "bg-gradient-to-br from-indigo-500 to-purple-500";
   return (
     <button
       onClick={onClick}
       className={
-        "relative flex items-center gap-2.5 rounded-xl border-2 p-3 transition-all " +
-        (accent === "sky"
-          ? "border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
-          : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20")
+        "relative flex flex-col items-center gap-1.5 rounded-xl border-2 transition-all " +
+        (compact ? "p-2.5 " : "flex-row items-center gap-2.5 p-3 ") +
+        borderClass
       }
     >
       <div
         className={
-          "flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm " +
-          (accent === "sky"
-            ? "bg-gradient-to-br from-sky-500 to-indigo-500"
-            : "bg-gradient-to-br from-amber-500 to-orange-500")
+          "flex items-center justify-center rounded-lg text-white shadow-sm " +
+          (compact ? "h-9 w-9" : "h-9 w-9 ") +
+          gradClass
         }
       >
         {icon}
       </div>
-      <div className="text-left">
-        <div className="text-sm font-semibold">{title}</div>
-        <div className="text-[10px] text-muted-foreground">{desc}</div>
+      <div className={compact ? "text-center" : "text-left"}>
+        <div className={compact ? "text-xs font-semibold leading-tight" : "text-sm font-semibold"}>
+          {title}
+        </div>
+        <div className="text-[10px] text-muted-foreground leading-tight">
+          {desc}
+        </div>
       </div>
     </button>
   );
