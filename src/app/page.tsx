@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useChessGame } from "@/hooks/useChessGame";
 import { ChessBoard } from "@/components/chess/ChessBoard";
 import { PlayerBar } from "@/components/chess/PlayerBar";
@@ -10,7 +10,11 @@ import { PromotionDialog } from "@/components/chess/PromotionDialog";
 import { GameOverDialog } from "@/components/chess/GameOverDialog";
 import { GameSetup } from "@/components/chess/GameSetup";
 import { SettingsDialog } from "@/components/chess/SettingsDialog";
+import { DailyPuzzleDialog } from "@/components/chess/DailyPuzzleDialog";
+import { AchievementsDialog } from "@/components/chess/AchievementsDialog";
+import { EvalBar } from "@/components/chess/EvalBar";
 import { GameMode, PieceColor } from "@/lib/chess/types";
+import { checkNewAchievements } from "@/lib/chess/achievements";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -19,6 +23,9 @@ import {
   Moon,
   Settings2,
   Play,
+  Puzzle as PuzzleIcon,
+  Award,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,13 +43,18 @@ export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPuzzle, setShowPuzzle] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [blindfold, setBlindfold] = useState(false);
+  const [showEval, setShowEval] = useState(false);
+  const prevStatusRef = useRef<string>("playing");
 
   const newGame = useChessGame((s) => s.newGame);
   const mode = useChessGame((s) => s.mode);
   const flipped = useChessGame((s) => s.flipped);
   const history = useChessGame((s) => s.history);
+  const status = useChessGame((s) => s.status);
 
   // Check for a saved game on mount
   useEffect(() => {
@@ -57,6 +69,32 @@ export default function Home() {
       // ignore
     }
   }, []);
+
+  // Detect game end → check for newly unlocked achievements
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    const finished =
+      status === "checkmate" ||
+      status === "stalemate" ||
+      status === "draw" ||
+      status === "resigned";
+    if (finished && prev === "playing") {
+      // Slight delay so stats are persisted first
+      const t = setTimeout(() => {
+        const newly = checkNewAchievements();
+        newly.forEach((a, i) => {
+          setTimeout(() => {
+            toast.success(`🏆 Logro desbloqueado: ${a.name}`, {
+              description: a.description,
+            });
+          }, i * 400);
+        });
+      }, 300);
+      return () => clearTimeout(t);
+    }
+    prevStatusRef.current = finished ? "finished" : "playing";
+    return;
+  }, [status]);
 
   const handleStart = (m: GameMode, bf: boolean) => {
     newGame(m);
@@ -117,6 +155,8 @@ export default function Home() {
       <Header
         onBack={gameStarted ? handleNewGame : undefined}
         onOpenSettings={() => setShowSettings(true)}
+        onOpenPuzzle={() => setShowPuzzle(true)}
+        onOpenAchievements={() => setShowAchievements(true)}
       />
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-3 pb-4 flex flex-col">
@@ -146,7 +186,26 @@ export default function Home() {
                   </button>
                 </motion.div>
               )}
-              <div className="w-full mt-6">
+
+              {/* Quick-access row: Desafío diario + Logros */}
+              <div className="grid grid-cols-2 gap-2.5 w-full max-w-md mt-4">
+                <QuickCard
+                  onClick={() => setShowPuzzle(true)}
+                  icon={<PuzzleIcon className="h-5 w-5" />}
+                  title="Desafío diario"
+                  desc="Puzzles de mate"
+                  accent="sky"
+                />
+                <QuickCard
+                  onClick={() => setShowAchievements(true)}
+                  icon={<Award className="h-5 w-5" />}
+                  title="Logros"
+                  desc="Insignias y metas"
+                  accent="amber"
+                />
+              </div>
+
+              <div className="w-full mt-5">
                 <GameSetup onStart={handleStart} onImportPgn={handleImportPgn} />
               </div>
             </motion.div>
@@ -164,6 +223,20 @@ export default function Home() {
                 label={getLabel(topColor)}
                 icon={getIcon(topColor)}
               />
+
+              {/* Evaluation bar (toggleable) */}
+              {showEval && (
+                <div className="flex items-center gap-2">
+                  <EvalBar />
+                  <button
+                    onClick={() => setShowEval(false)}
+                    className="text-[10px] text-muted-foreground hover:text-foreground shrink-0"
+                    title="Ocultar evaluación"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               <ChessBoard blindfold={blindfold} />
 
@@ -185,6 +258,19 @@ export default function Home() {
                   onOpenSettings={() => setShowSettings(true)}
                 />
               </div>
+
+              {/* Analysis toggle (if not already showing) */}
+              {!showEval && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full h-8 text-[11px] text-muted-foreground"
+                  onClick={() => setShowEval(true)}
+                >
+                  <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                  Mostrar barra de evaluación
+                </Button>
+              )}
 
               {/* Move history toggle (mobile) */}
               <div className="lg:hidden">
@@ -228,6 +314,11 @@ export default function Home() {
       <PromotionDialog />
       <GameOverDialog onNewGame={handleNewGame} onRematch={handleRematch} />
       <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+      <DailyPuzzleDialog open={showPuzzle} onOpenChange={setShowPuzzle} />
+      <AchievementsDialog
+        open={showAchievements}
+        onOpenChange={setShowAchievements}
+      />
     </div>
   );
 }
@@ -235,9 +326,13 @@ export default function Home() {
 function Header({
   onBack,
   onOpenSettings,
+  onOpenPuzzle,
+  onOpenAchievements,
 }: {
   onBack?: () => void;
   onOpenSettings: () => void;
+  onOpenPuzzle: () => void;
+  onOpenAchievements: () => void;
 }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -287,19 +382,80 @@ function Header({
             </Button>
           )}
           {!onBack && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0"
-              onClick={onOpenSettings}
-              title="Ajustes"
-            >
-              <Settings2 className="h-4 w-4" />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0"
+                onClick={onOpenPuzzle}
+                title="Desafío diario"
+              >
+                <PuzzleIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0"
+                onClick={onOpenAchievements}
+                title="Logros"
+              >
+                <Award className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0"
+                onClick={onOpenSettings}
+                title="Ajustes"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+function QuickCard({
+  onClick,
+  icon,
+  title,
+  desc,
+  accent,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  accent: "sky" | "amber";
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "relative flex items-center gap-2.5 rounded-xl border-2 p-3 transition-all " +
+        (accent === "sky"
+          ? "border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
+          : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20")
+      }
+    >
+      <div
+        className={
+          "flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm " +
+          (accent === "sky"
+            ? "bg-gradient-to-br from-sky-500 to-indigo-500"
+            : "bg-gradient-to-br from-amber-500 to-orange-500")
+        }
+      >
+        {icon}
+      </div>
+      <div className="text-left">
+        <div className="text-sm font-semibold">{title}</div>
+        <div className="text-[10px] text-muted-foreground">{desc}</div>
+      </div>
+    </button>
   );
 }
 

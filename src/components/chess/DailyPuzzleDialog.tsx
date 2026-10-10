@@ -23,7 +23,7 @@ import {
   getStatus,
 } from "@/lib/chess/engine";
 import { toSan } from "@/lib/chess/notation";
-import { GameState, Move, PieceColor, Square } from "@/lib/chess/types";
+import { GameState, Move, Square } from "@/lib/chess/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Puzzle as PuzzleIcon, Lightbulb, RefreshCw, Check, X } from "lucide-react";
@@ -52,11 +52,16 @@ interface DailyPuzzleDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function buildInitialState(): GameState {
+  const p = VALID_PUZZLES[0];
+  return buildStateFromSans(p.setupMoves).state;
+}
+
 export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps) {
   const [puzzle, setPuzzle] = useState<Puzzle>(() =>
     VALID_PUZZLES.length > 0 ? getPuzzleOfDay(new Date()) : VALID_PUZZLES[0]
   );
-  const [state, setState] = useState<GameState>(() => initialState());
+  const [state, setState] = useState<GameState>(() => buildInitialState());
   const [solutionIndex, setSolutionIndex] = useState(0);
   const [selected, setSelected] = useState<Square | null>(null);
   const [legalForSelected, setLegalForSelected] = useState<Move[]>([]);
@@ -66,21 +71,7 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
   const [attempts, setAttempts] = useState(0);
   const [solvedMap, setSolvedMap] = useState<Record<string, number>>({});
 
-  function initialState(): GameState {
-    const p = VALID_PUZZLES[0];
-    return buildStateFromSans(p.setupMoves).state;
-  }
-
-  // Load puzzle on open
-  useEffect(() => {
-    if (!open) return;
-    setSolvedMap(loadSolvedMap());
-    const p = getPuzzleOfDay(new Date());
-    loadPuzzle(p);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  function loadPuzzle(p: Puzzle) {
+  const loadPuzzle = useCallback((p: Puzzle) => {
     const { state: s } = buildStateFromSans(p.setupMoves);
     setPuzzle(p);
     setState(s);
@@ -91,10 +82,66 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
     setShowHint(false);
     setSolved(!!loadSolvedMap()[p.id]);
     setAttempts(0);
-  }
+  }, []);
+
+  // Load puzzle on open
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSolvedMap(loadSolvedMap());
+    const p = getPuzzleOfDay(new Date());
+    loadPuzzle(p);
+  }, [open, loadPuzzle]);
 
   const legalTargets = new Set(
     legalForSelected.map((m) => `${m.to.row}-${m.to.col}`)
+  );
+
+  const makeMove = useCallback(
+    (move: Move) => {
+      const expectedSan = puzzle.solution[solutionIndex];
+      const isCorrect = checkPuzzleMove(state, move, expectedSan);
+      setAttempts((a) => a + 1);
+      if (!isCorrect) {
+        toast.error("Movimiento incorrecto. ¡Prueba otra vez!");
+        setSelected(null);
+        setLegalForSelected([]);
+        return;
+      }
+      const newState = applyMove(state, move);
+      setLastMove({ from: move.from, to: move.to });
+      setSolutionIndex((i) => i + 1);
+      setSelected(null);
+      setLegalForSelected([]);
+
+      // Check if puzzle solved (no more expected solution moves)
+      if (solutionIndex + 1 >= puzzle.solution.length) {
+        setSolved(true);
+        const map = loadSolvedMap();
+        if (!map[puzzle.id]) {
+          map[puzzle.id] = Date.now();
+          saveSolvedMap(map);
+          setSolvedMap(map);
+        }
+        toast.success("¡Puzzle resuelto! 🎉");
+        setState(newState);
+        return;
+      }
+      setState(newState);
+
+      const after = getStatus(newState);
+      if (after.status === "checkmate") {
+        setSolved(true);
+        const map = loadSolvedMap();
+        if (!map[puzzle.id]) {
+          map[puzzle.id] = Date.now();
+          saveSolvedMap(map);
+          setSolvedMap(map);
+        }
+        toast.success("¡Jaque mate! Puzzle resuelto 🎉");
+      }
+    },
+    [puzzle, solutionIndex, state]
   );
 
   const handleSquareClick = useCallback(
@@ -136,59 +183,8 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
         }
       }
     },
-    [state, selected, legalForSelected, solved]
+    [state, selected, legalForSelected, solved, makeMove]
   );
-
-  function makeMove(move: Move) {
-    const expectedSan = puzzle.solution[solutionIndex];
-    const isCorrect = checkPuzzleMove(state, move, expectedSan);
-    setAttempts((a) => a + 1);
-    if (!isCorrect) {
-      toast.error("Movimiento incorrecto. ¡Prueba otra vez!");
-      // shake animation could be added; for now just clear selection
-      setSelected(null);
-      setLegalForSelected([]);
-      // Optionally undo by not applying
-      return;
-    }
-    const newState = applyMove(state, move);
-    setLastMove({ from: move.from, to: move.to });
-    setSolutionIndex((i) => i + 1);
-    setSelected(null);
-    setLegalForSelected([]);
-
-    // Check if puzzle solved (no more expected solution moves)
-    if (solutionIndex + 1 >= puzzle.solution.length) {
-      setSolved(true);
-      const map = loadSolvedMap();
-      if (!map[puzzle.id]) {
-        map[puzzle.id] = Date.now();
-        saveSolvedMap(map);
-        setSolvedMap(map);
-      }
-      toast.success("¡Puzzle resuelto! 🎉");
-      setState(newState);
-      return;
-    }
-    setState(newState);
-
-    // Play an automatic opponent reply if the solution has more moves
-    // (for M2/M3 puzzles where opponent replies are in the solution).
-    // Our solution only contains the side-to-move's moves, so after a
-    // correct move we either end (solved) or it's opponent's turn.
-    // For simplicity, we let the player continue if it's still their turn.
-    const status = getStatus(newState);
-    if (status.status === "checkmate") {
-      setSolved(true);
-      const map = loadSolvedMap();
-      if (!map[puzzle.id]) {
-        map[puzzle.id] = Date.now();
-        saveSolvedMap(map);
-        setSolvedMap(map);
-      }
-      toast.success("¡Jaque mate! Puzzle resuelto 🎉");
-    }
-  }
 
   const sideLabel = puzzle.sideToMove === "w" ? "Blancas" : "Negras";
   const status = getStatus(state);
@@ -325,6 +321,3 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
     </Dialog>
   );
 }
-
-// Avoid unused import warnings
-void PieceColor;

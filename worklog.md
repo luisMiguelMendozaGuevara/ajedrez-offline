@@ -165,3 +165,45 @@ Stage Summary (Ronda 2):
 - Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (8/10 y 9/10).
 - Riesgo: expert mode (depth 4) tarda ~5s por movimiento (aceptable pero podría optimizarse con tabla de transposición en el futuro).
 - Próximas mejoras recomendadas: tabla de transposición para acelerar expert, tutorial de aperturas con partidas famosas, modo "análisis" con evaluación, notación algebraica explicada, logros/desafíos diarios.
+
+---
+Task ID: R3 (cron review)
+Agent: Z.ai Code (cron webDevReview)
+Task: Revisión QA + añadir desafío diario, logros, barra de evaluación (análisis).
+
+Estado del proyecto al iniciar (R3):
+- App estable con: motor completo, IA (5 niveles), 2 modos, persistencia, estadísticas, sonidos, 5 temas de tablero, ajustes, pista, reloj de ajedrez, PGN export/import, modo a la ciega, 5 temas de tablero.
+- Lint limpio, sin errores runtime.
+- Se detectó que los archivos creados en la ronda anterior (puzzles.ts, achievements.ts, EvalBar.tsx, PuzzleBoard.tsx, AchievementsDialog.tsx, DailyPuzzleDialog.tsx) NO estaban integrados en page.tsx todavía.
+
+Work Log (Ronda 3 - Integración + nuevas features):
+- QA inicial: servidor HTTP 200, lint limpio, setup renderiza sin errores de consola.
+- Integrados en `src/app/page.tsx` los componentes pendientes:
+  - `DailyPuzzleDialog`, `AchievementsDialog`, `EvalBar`.
+  - Estado: `showPuzzle`, `showAchievements`, `showEval`, `prevStatusRef`.
+  - Quick-access cards en setup: "Desafío diario" (sky) y "Logros" (amber).
+  - Botones en header: PuzzleIcon, Award, Settings2 (visibles en setup).
+  - EvalBar toggleable en la vista de juego (botón "Mostrar barra de evaluación").
+  - Detección de fin de partida → checkNewAchievements() → toasts de logros desbloqueados.
+- Refactorizado `DailyPuzzleDialog.tsx`: funciones convertidas a `useCallback` (loadPuzzle, makeMove, handleSquareClick) para satisfacer regla react-hooks/immutability; reordenadas para evitar acceso antes de declaración.
+- Corregido error de compilación: `PieceColor` importado como valor en DailyPuzzleDialog pero es un tipo → eliminado el import no usado (Turbopack no permitía import de tipo como valor).
+- Mejorado `EvalBar.tsx`: añadido icono Activity + label "EVAL" + valor numérico coloreado (verde/blanco si blancas, rojo si negras) para máxima visibilidad (VLM 9/10 de visibilidad).
+
+Verificación (Ronda 3):
+- Lint limpio (0 errores).
+- Setup renderiza con quick cards "Desafío diario" y "Logros" ✓.
+- Header muestra botones de puzzle, logros y ajustes ✓.
+- Desafío diario: diálogo abre con tablero, título "Mate del pastor (M1)", "Mueven las Blancas · M1", contador de intentos, lista de más puzzles ✓.
+- Resolución de puzzle: jugada Qxf7# (de h5 a f7) detectada como correcta → "¡Puzzle resuelto! 🎉" + solución mostrada ✓.
+- Logros: diálogo abre con grid de 12 insignias (0/12 desbloqueadas), estados locked/unlocked distinguibles ✓.
+- Barra de evaluación: toggleable, muestra "EVAL -0.1" con barra horizontal bicolores (negro/izq, blanco/der), valor coloreado según ventaja ✓ (VLM 9/10).
+- Detección de logros: effect observa status → al terminar partida llama checkNewAchievements y muestra toasts "🏆 Logro desbloqueado".
+- Sin errores de consola ni en dev.log.
+- VLM: setup screen 9/10, puzzle dialog 9/10, achievements 8/10, eval bar visibilidad 9/10, game screen 9/10.
+
+Stage Summary (Ronda 3):
+- Funcionalidades nuevas integradas: Desafío diario (puzzles de mate con persistencia de resueltos), Logros (12 insignias desbloqueables con toasts), Barra de evaluación (análisis de posición en tiempo real).
+- Mejoras de estilo: quick cards con gradientes, header con iconos de acceso rápido, eval bar con label "EVAL" e icono Activity, valor coloreado según ventaja.
+- Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (todas las puntuaciones 8-9/10).
+- Riesgo: el set de puzzles es pequeño (5); conviene añadir más variedad y puzzles M2/M3 reales.
+- Próximas mejoras recomendadas: más puzzles (M2/M3 verificados), tutorial de aperturas interactivo, notación algebraica explicada con tooltips, tabla de transposición para IA expert, modo "repasar partida" paso a paso.

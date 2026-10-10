@@ -4,8 +4,9 @@ import { useMemo } from "react";
 import { useChessGame } from "@/hooks/useChessGame";
 import { evaluate } from "@/lib/chess/ai";
 import { motion } from "framer-motion";
+import { Activity } from "lucide-react";
 
-// Horizontal evaluation bar shown above/below the board.
+// Horizontal evaluation bar shown above the board.
 // Left = black advantage, Right = white advantage.
 export function EvalBar() {
   const state = useChessGame((s) => s.state);
@@ -24,10 +25,16 @@ export function EvalBar() {
       ? `${pawns > 0 ? "M" : "-M"}`
       : `${pawns > 0 ? "+" : ""}${pawns.toFixed(1)}`;
 
+  const whiteAhead = pawns > 0;
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-2.5 py-1.5">
+      <Activity className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+        Eval
+      </span>
       <div
-        className="relative flex-1 h-5 rounded-full overflow-hidden border border-border/60 shadow-inner shrink-0"
+        className="relative flex-1 h-5 rounded-full overflow-hidden shadow-inner shrink-0"
         style={{ background: "#1e1b2e" }}
       >
         {/* Black portion (left) */}
@@ -44,18 +51,15 @@ export function EvalBar() {
         />
         {/* center marker */}
         <div className="absolute top-0 bottom-0 left-1/2 w-px bg-amber-400/70 z-10" />
-        {/* eval text */}
-        <div
-          className="absolute top-0 bottom-0 flex items-center px-2 z-20 text-[10px] font-bold font-mono tabular-nums"
-          style={{
-            left: whitePct > 0.5 ? "auto" : `${whitePct * 100}%`,
-            right: whitePct > 0.5 ? `${(1 - whitePct) * 100}%` : "auto",
-            color: whitePct > 0.5 ? "#1e1b2e" : "#f8fafc",
-          }}
-        >
-          {display}
-        </div>
       </div>
+      <span
+        className="text-xs font-bold font-mono tabular-nums shrink-0 min-w-[2.5rem] text-right"
+        style={{
+          color: whiteAhead ? "#10b981" : pawns < 0 ? "#f43f5e" : undefined,
+        }}
+      >
+        {display}
+      </span>
     </div>
   );
 }
