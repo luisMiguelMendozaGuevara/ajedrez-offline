@@ -195,8 +195,25 @@ export const BOARD_THEMES: Record<BoardThemeId, BoardTheme> = {
   },
 };
 
+export type PieceStyleId = "classic" | "outline" | "neon" | "wood" | "minimal";
+
+export interface PieceStyle {
+  id: PieceStyleId;
+  name: string;
+  emoji: string;
+}
+
+export const PIECE_STYLES: PieceStyle[] = [
+  { id: "classic", name: "Clásico", emoji: "♟" },
+  { id: "outline", name: "Contorno", emoji: "♔" },
+  { id: "neon", name: "Neón", emoji: "✦" },
+  { id: "wood", name: "Madera", emoji: "🪵" },
+  { id: "minimal", name: "Minimal", emoji: "●" },
+];
+
 export interface AppSettings {
   boardTheme: BoardThemeId;
+  pieceStyle: PieceStyleId;
   showCoordinates: boolean;
   soundEnabled: boolean;
   hapticsEnabled: boolean;
@@ -205,6 +222,7 @@ export interface AppSettings {
 
 const DEFAULT_SETTINGS: AppSettings = {
   boardTheme: "classic",
+  pieceStyle: "classic",
   showCoordinates: true,
   soundEnabled: true,
   hapticsEnabled: true,

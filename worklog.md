@@ -307,3 +307,55 @@ Stage Summary (Ronda 5):
 - Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (review 9/10).
 - Riesgo: los puzzles M2/M3 con varias jugadas del jugador podrían necesitar oponente automático para las respuestas intermedias (actualmente solo valida la jugada del lado que mueve).
 - Próximas mejoras recomendadas: oponente automático en puzzles M2/M3 para las respuestas, tabla de transposición para IA expert, sonido específico para captura y mate, más puzzles verificados, modo "puzzle rush" cronometrado.
+
+---
+Task ID: R6 (cron review)
+Agent: Z.ai Code (cron webDevReview)
+Task: Revisión QA + añadir Puzzle Rush, selector de estilos de pieza.
+
+Estado del proyecto al iniciar (R6):
+- App estable con: motor completo, IA (5 niveles), 2 modos, persistencia, estadísticas, sonidos, 5 temas de tablero, ajustes, pista, reloj, PGN export/import, modo a la ciega, desafío diario (8 puzzles), 12 logros, barra de evaluación, tutorial de 8 aperturas, tooltips SAN, animación de captura, modo repaso.
+- Lint limpio, sin errores runtime.
+
+Work Log (Ronda 6 - Puzzle Rush + estilos de pieza):
+- QA inicial: servidor HTTP 200, lint limpio, setup renderiza sin errores.
+- Creado `src/components/chess/PuzzleRushDialog.tsx`:
+  - Modo "Puzzle Rush" cronometrado: resolver 5 puzzles de mate en 60 segundos.
+  - 3 fases: idle (intro) → playing (con timer) → finished (resultados).
+  - Cola aleatoria de 5 puzzles del pool existente (shuffle).
+  - Stats en vivo: tiempo restante (con color semántico verde/ámbar/rojo), acertados, fallados.
+  - Barra de progreso de tiempo animada.
+  - Contador "Puzzle X de N" + indicador de quién mueve.
+  - En fallo: avanza al siguiente puzzle automáticamente (tras 600ms).
+  - En acierto: toast "+1" y avanza (tras 700ms).
+  - Pantalla final con trophy, stats (acertados/fallados/tiempo), precisión %, y botones Cerrar/Reintentar.
+  - Timer con setInterval que detecta fin de tiempo → finishRush.
+- Extendido `src/lib/chess/storage.ts`:
+  - `PieceStyleId` type: classic | outline | neon | wood | minimal.
+  - `PIECE_STYLES` array con metadata (id, name, emoji).
+  - `AppSettings` ampliado con `pieceStyle`.
+  - DEFAULT_SETTINGS con pieceStyle: "classic".
+- Actualizado `src/hooks/useSettings.ts`: acción `setPieceStyle`.
+- Renovado `src/components/chess/ChessPiece.tsx`:
+  - 5 estilos visuales: Clásico (sólido con trazo), Contorno (outline glyphs), Neón (cyan/purple con glow), Madera (tonos marrón), Minimal (silueta con doble sombra).
+  - Cada estilo tiene su propio set de colores, textStroke, textShadow y filter.
+- Actualizado `src/components/chess/ChessBoard.tsx`: pasa `pieceStyleId` de settings al ChessPiece.
+- Actualizado `src/components/chess/SettingsDialog.tsx`: nueva sección "Estilo de piezas" con 5 opciones y preview del caballo en cada estilo.
+- Actualizado `src/app/page.tsx`:
+  - Quick cards ahora 4 en grid (Desafío sky / Rush fuchsia / Aprender indigo / Logros amber).
+  - Estado `showRush`, diálogo `PuzzleRushDialog` integrado.
+  - QuickCard ampliado con accent `fuchsia` y `desc` opcional.
+
+Verificación (Ronda 6):
+- Lint limpio (0 errores).
+- Setup renderiza las 4 quick cards (Desafío, Rush, Aprender, Logros) ✓.
+- Puzzle Rush: diálogo intro con ⚡ + descripción "5 puzzles en 60s" + botón "Empezar reto" ✓ (VLM 9/10). Al iniciar: timer 60s, stats TIEMPO/ACERTADOS/FALLADOS, "Puzzle 1 de 5", tablero visible ✓.
+- Estilos de pieza: sección "Estilo de piezas" con 5 opciones (Clásico, Contorno, Neón, Madera, Minimal) y preview de caballo ✓ (VLM 9/10). Estilo Neón aplicado: piezas cyan (blancas) y purple (negras) con glow ✓ (VLM 7/10).
+- Sin errores de consola ni en dev.log.
+
+Stage Summary (Ronda 6):
+- Funcionalidades nuevas: Puzzle Rush (modo cronometrado de 5 puzzles en 60s con stats en vivo y pantalla de resultados), selector de 5 estilos de pieza (Clásico, Contorno, Neón, Madera, Minimal) persistente.
+- Mejoras de estilo: 4ª quick card fuchsia, grid de 4 columnas, previews de caballo en selector de piezas, timer con color semántico en rush.
+- Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (rush 9/10, settings 9/10, neon 7/10).
+- Riesgo: el pool de puzzles es pequeño (8); el rush repite puzzles si se necesitan más de 8.
+- Próximas mejoras recomendadas: ampliar pool de puzzles a 20+, tabla de transposición para IA expert, sonido específico para captura y mate, pantalla de fin de partida con estadísticas detalladas (precisión/tiempo/capturas), animación de pieza moviéndose entre casillas.

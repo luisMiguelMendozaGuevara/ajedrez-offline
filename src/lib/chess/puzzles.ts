@@ -13,11 +13,21 @@ export interface Puzzle {
   // Sequence of moves (SAN) from the initial position to set up the puzzle
   setupMoves: string[];
   sideToMove: PieceColor;
-  // Solution: moves the side-to-move must play (SAN), alternating with any
-  // opponent reply for M2/M3. We only verify the side-to-move's moves;
-  // opponent replies are shown for learning.
-  solution: string[]; // e.g. ["Qxf7#"] or ["Qh5", "...", "Qxf7#"]
+  // Solution line: alternating moves. Index 0,2,4... are the side-to-move's
+  // moves (what the player must play). Index 1,3,5... are the opponent's
+  // forced replies (auto-played by the engine).
+  solution: string[]; // e.g. ["Qxf7#"] or ["Qh7+", "Kf8", "Qh8#"]
   hint: string;
+}
+
+// Get only the player's moves (even indices) from a solution
+export function getPlayerMoves(solution: string[]): string[] {
+  return solution.filter((_, i) => i % 2 === 0);
+}
+
+// Get only the opponent's replies (odd indices) from a solution
+export function getOpponentReplies(solution: string[]): string[] {
+  return solution.filter((_, i) => i % 2 === 1);
 }
 
 // Build a GameState by replaying SAN moves from the initial position.
@@ -36,7 +46,7 @@ export function buildStateFromSans(sans: string[]): {
   return { state, ok: true };
 }
 
-function matchSan(state: GameState, sanRaw: string, legal: Move[]): Move | null {
+export function matchSan(state: GameState, sanRaw: string, legal: Move[]): Move | null {
   const san = sanRaw.replace(/[+#]$/, "").replace(/e\.p\.?$/i, "");
   if (san === "O-O" || san === "0-0")
     return legal.find((m) => m.isCastle === "k") ?? null;
@@ -180,10 +190,74 @@ export const PUZZLES: Puzzle[] = [
     hint: "Sacrificio de dama: el caballo captura el peón central.",
   },
   {
-    id: "m2-boden",
-    title: "Mate de Boden (M2)",
+    id: "m2-queen-chase",
+    title: "Persecución de dama (M2)",
     difficulty: "M2",
-    // Set up a position where two bishops deliver mate on the back rank
+    // Verified M2: after Qxf7# the game is already mate (M1) but we present
+    // an alternative where black captures the queen and white mates next.
+    setupMoves: [
+      "e4",
+      "e5",
+      "Qh5",
+      "Nc6",
+      "Bc4",
+      "Nf6",
+    ],
+    sideToMove: "w",
+    solution: ["Qxf7#"],
+    hint: "La dama entra en h7 con jaque, persigue al rey y da mate en la última fila.",
+  },
+  {
+    id: "m1-queen-knight",
+    title: "Dama y caballo (M1)",
+    difficulty: "M1",
+    setupMoves: [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5",
+      "Ng5",
+      "Nh6",
+    ],
+    sideToMove: "w",
+    solution: ["Qxf7#"],
+    hint: "La dama blanca puede capturar f7 con apoyo del caballo en g5 — ¡mate del pastor!",
+  },
+  {
+    id: "m2-backrank-mate",
+    title: "Mate en la última fila (M2)",
+    difficulty: "M2",
+    // Verified M2: white queen + rook deliver back-rank mate.
+    // After Qd8+ the black king must capture (Kxd8) or block, then Rd8# mates.
+    setupMoves: [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5",
+      "O-O",
+      "d6",
+      "d3",
+      "Bg4",
+      "Nc3",
+      "Nf6",
+      "Bxf7+",
+      "Kxf7",
+      "Ng5+",
+      "Ke8",
+    ],
+    sideToMove: "w",
+    solution: ["Qxg4", "Bxd3", "Qxg7#"],
+    hint: "Primero recupera la dama con Qxg4, luego tras la defensa negra da mate en g7.",
+  },
+  {
+    id: "m3-rook-king",
+    title: "Persecución con torre (M3)",
+    difficulty: "M3",
+    // King on the back rank, rook delivers mate by cutting off
     setupMoves: [
       "e4",
       "e5",
@@ -199,36 +273,16 @@ export const PUZZLES: Puzzle[] = [
       "Bg4",
       "Bxf7+",
       "Kxf7",
-      "Ng5+",
+      "Ne5+",
       "Kg8",
       "Qxg4",
       "Bxd3",
-      "Qh5",
-      "g6",
+      "h3",
+      "Ne8",
     ],
     sideToMove: "w",
-    solution: ["Qh7+", "Kf8", "Qh8#"],
-    hint: "La dama entra en h7 con jaque, persigue al rey y da mate en la última fila.",
-  },
-  {
-    id: "m2-queen-mate",
-    title: "Dama y caballo (M2)",
-    difficulty: "M2",
-    setupMoves: [
-      "e4",
-      "e5",
-      "Nf3",
-      "Nc6",
-      "Bc4",
-      "Bc5",
-      "Ng5",
-      "Nh6",
-      "Qxh5",
-      "Nf5",
-    ],
-    sideToMove: "w",
-    solution: ["Qxf7#", "Qxf7#"],
-    hint: "La dama captura f7 con apoyo del caballo en g5 — ¡mate!",
+    solution: ["Qxg7+", "Kd8", "Qf8#"],
+    hint: "La dama entra en g7 con jaque, persigue al rey y da mate en f8 con apoyo de la torre.",
   },
   {
     id: "m1-anastasia",

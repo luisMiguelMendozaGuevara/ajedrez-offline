@@ -14,6 +14,7 @@ import {
   getPuzzleOfDay,
   buildStateFromSans,
   checkPuzzleMove,
+  matchSan,
   Puzzle,
 } from "@/lib/chess/puzzles";
 import {
@@ -110,12 +111,13 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
       }
       const newState = applyMove(state, move);
       setLastMove({ from: move.from, to: move.to });
-      setSolutionIndex((i) => i + 1);
+      const newSolutionIndex = solutionIndex + 1;
+      setSolutionIndex(newSolutionIndex);
       setSelected(null);
       setLegalForSelected([]);
 
       // Check if puzzle solved (no more expected solution moves)
-      if (solutionIndex + 1 >= puzzle.solution.length) {
+      if (newSolutionIndex >= puzzle.solution.length) {
         setSolved(true);
         const map = loadSolvedMap();
         if (!map[puzzle.id]) {
@@ -139,6 +141,33 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
           setSolvedMap(map);
         }
         toast.success("¡Jaque mate! Puzzle resuelto 🎉");
+        return;
+      }
+
+      // Auto-play the opponent's reply (odd index) after a short delay
+      const nextSan = puzzle.solution[newSolutionIndex];
+      if (nextSan && newSolutionIndex % 2 === 1) {
+        setTimeout(() => {
+          // Re-derive state from the closure since setState is async
+          const legal = generateLegalMoves(newState);
+          const oppMove = matchSan(newState, nextSan, legal);
+          if (!oppMove) return;
+          const afterOpp = applyMove(newState, oppMove);
+          setLastMove({ from: oppMove.from, to: oppMove.to });
+          setSolutionIndex((i) => i + 1);
+          setState(afterOpp);
+
+          // Check if puzzle now solved after opponent reply (shouldn't normally)
+          if (newSolutionIndex + 1 >= puzzle.solution.length) {
+            setSolved(true);
+            const m2 = loadSolvedMap();
+            if (!m2[puzzle.id]) {
+              m2[puzzle.id] = Date.now();
+              saveSolvedMap(m2);
+              setSolvedMap(m2);
+            }
+          }
+        }, 700);
       }
     },
     [puzzle, solutionIndex, state]

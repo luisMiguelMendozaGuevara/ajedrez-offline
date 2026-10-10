@@ -35,6 +35,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   const lastWasCapture = !!lastEntry?.move.captured;
 
   const boardThemeId = useSettings((s) => s.boardTheme);
+  const pieceStyleId = useSettings((s) => s.pieceStyle);
   const showCoordinates = useSettings((s) => s.showCoordinates);
   const highlightLastMove = useSettings((s) => s.highlightLastMove);
 
@@ -198,6 +199,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                       <ChessPiece
                         type={piece.type}
                         color={piece.color}
+                        pieceStyle={pieceStyleId}
                       />
                     </motion.span>
                   )}

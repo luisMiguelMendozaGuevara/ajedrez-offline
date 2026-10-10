@@ -4,6 +4,7 @@ import { create } from "zustand";
 import {
   AppSettings,
   BoardThemeId,
+  PieceStyleId,
   loadSettings,
   saveSettings,
   BOARD_THEMES,
@@ -11,6 +12,7 @@ import {
 
 interface SettingsStore extends AppSettings {
   setBoardTheme: (theme: BoardThemeId) => void;
+  setPieceStyle: (style: PieceStyleId) => void;
   toggleCoordinates: () => void;
   toggleSound: () => void;
   toggleHaptics: () => void;
@@ -23,6 +25,10 @@ export const useSettings = create<SettingsStore>((set, get) => ({
 
   setBoardTheme: (theme) => {
     set({ boardTheme: theme });
+    persist(get());
+  },
+  setPieceStyle: (style) => {
+    set({ pieceStyle: style });
     persist(get());
   },
   toggleCoordinates: () => {
@@ -50,6 +56,7 @@ function loadSettingsSafe(): AppSettings {
   if (typeof window === "undefined") {
     return {
       boardTheme: "classic",
+      pieceStyle: "classic",
       showCoordinates: true,
       soundEnabled: true,
       hapticsEnabled: true,

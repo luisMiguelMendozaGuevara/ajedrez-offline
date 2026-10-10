@@ -157,6 +157,104 @@ interface SearchOptions {
   randomFactor?: number;
 }
 
+// ---------- Zobrist hashing + transposition table ----------
+// Speeds up the search for expert level by caching evaluated positions.
+
+const ZOBRIST_PIECES = 12; // 6 piece types x 2 colors
+const ZOBRIST_CASTLE = 4; // 4 castling rights
+const ZOBRIST_EP = 8; // 8 files for en passant
+const ZOBRIST_TURN = 2; // white/black to move
+
+// Pre-computed random 32-bit values
+let zobristTable: {
+  pieces: number[][][]; // [row][col][pieceIndex]
+  castle: number[]; // [4]
+  ep: number[]; // [8]
+  turn: number[]; // [2]
+} | null = null;
+
+function getZobrist() {
+  if (zobristTable) return zobristTable;
+  const pieces: number[][][] = Array.from({ length: 8 }, () =>
+    Array.from({ length: 8 }, () => Array(ZOBRIST_PIECES).fill(0))
+  );
+  const castle = Array(ZOBRIST_CASTLE).fill(0);
+  const ep = Array(ZOBRIST_EP).fill(0);
+  const turn = Array(ZOBRIST_TURN).fill(0);
+  // Simple PRNG (mulberry32) seeded deterministically
+  let seed = 0x1234abcd;
+  const rand = () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return (t ^ (t >>> 14)) >>> 0;
+  };
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++)
+      for (let i = 0; i < ZOBRIST_PIECES; i++) pieces[r][c][i] = rand();
+  for (let i = 0; i < ZOBRIST_CASTLE; i++) castle[i] = rand();
+  for (let i = 0; i < ZOBRIST_EP; i++) ep[i] = rand();
+  for (let i = 0; i < ZOBRIST_TURN; i++) turn[i] = rand();
+  zobristTable = { pieces, castle, ep, turn };
+  return zobristTable;
+}
+
+function pieceIndex(type: PieceType, color: PieceColor): number {
+  const base = type === "p" ? 0 : type === "n" ? 1 : type === "b" ? 2 : type === "r" ? 3 : type === "q" ? 4 : 5;
+  return base * 2 + (color === "w" ? 0 : 1);
+}
+
+function computeZobrist(state: GameState): number {
+  const z = getZobrist();
+  let h = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = state.board[r][c];
+      if (p) h ^= z.pieces[r][c][pieceIndex(p.type, p.color)];
+    }
+  }
+  if (state.castling.wK) h ^= z.castle[0];
+  if (state.castling.wQ) h ^= z.castle[1];
+  if (state.castling.bK) h ^= z.castle[2];
+  if (state.castling.bQ) h ^= z.castle[3];
+  if (state.enPassant) h ^= z.ep[state.enPassant.col];
+  h ^= z.turn[state.turn === "w" ? 0 : 1];
+  return h >>> 0;
+}
+
+interface TTEntry {
+  depth: number;
+  score: number;
+  flag: 0 | 1 | 2; // exact, lower bound, upper bound
+}
+
+const transpositionTable = new Map<number, TTEntry>();
+const TT_MAX = 50000;
+
+function ttGet(hash: number): TTEntry | undefined {
+  return transpositionTable.get(hash);
+}
+
+function ttSet(hash: number, entry: TTEntry): void {
+  if (transpositionTable.size >= TT_MAX) {
+    // Evict oldest ~25% to avoid unbounded growth
+    const keys = transpositionTable.keys();
+    let toRemove = Math.floor(TT_MAX * 0.25);
+    for (const k of keys) {
+      transpositionTable.delete(k);
+      toRemove--;
+      if (toRemove <= 0) break;
+    }
+  }
+  transpositionTable.set(hash, entry);
+}
+
+// Reset the transposition table (call between moves to free memory)
+export function resetTranspositionTable(): void {
+  transpositionTable.clear();
+}
+
 function negamax(
   state: GameState,
   depth: number,
@@ -178,8 +276,20 @@ function negamax(
     return evaluate(state, color);
   }
 
+  // Transposition table lookup
+  const hash = computeZobrist(state);
+  const cached = ttGet(hash);
+  const ALPHA = -1000000;
+  if (cached && cached.depth >= depth) {
+    if (cached.flag === 0) return cached.score; // exact
+    if (cached.flag === 1 && cached.score >= beta) return cached.score; // lower bound
+    if (cached.flag === 2 && cached.score <= alpha) return cached.score; // upper bound
+  }
+  void ALPHA;
+
   const ordered = orderMoves(moves);
   let best = -Infinity;
+  const origAlpha = alpha;
   for (const move of ordered) {
     const ns = applyMove(state, move);
     const score = -negamax(ns, depth - 1, -beta, -alpha, color === "w" ? "b" : "w");
@@ -187,6 +297,13 @@ function negamax(
     if (best > alpha) alpha = best;
     if (alpha >= beta) break;
   }
+
+  // Store in transposition table
+  let flag: 0 | 1 | 2 = 0;
+  if (best <= origAlpha) flag = 2; // upper bound
+  else if (best >= beta) flag = 1; // lower bound
+  ttSet(hash, { depth, score: best, flag });
+
   return best;
 }
 

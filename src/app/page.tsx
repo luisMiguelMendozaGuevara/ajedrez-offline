@@ -15,6 +15,7 @@ import { AchievementsDialog } from "@/components/chess/AchievementsDialog";
 import { EvalBar } from "@/components/chess/EvalBar";
 import { OpeningTutorialDialog } from "@/components/chess/OpeningTutorialDialog";
 import { ReviewBar } from "@/components/chess/ReviewBar";
+import { PuzzleRushDialog } from "@/components/chess/PuzzleRushDialog";
 import { GameMode, PieceColor } from "@/lib/chess/types";
 import { checkNewAchievements } from "@/lib/chess/achievements";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,6 +30,7 @@ import {
   Award,
   BarChart3,
   GraduationCap,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +51,7 @@ export default function Home() {
   const [showPuzzle, setShowPuzzle] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showOpenings, setShowOpenings] = useState(false);
+  const [showRush, setShowRush] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [blindfold, setBlindfold] = useState(false);
   const [showEval, setShowEval] = useState(false);
@@ -191,21 +194,26 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* Quick-access row: Desafío diario + Aprender + Logros */}
-              <div className="grid grid-cols-3 gap-2 w-full max-w-md mt-4">
+              {/* Quick-access row: Desafío + Rush + Aprender + Logros */}
+              <div className="grid grid-cols-4 gap-1.5 w-full max-w-md mt-4">
                 <QuickCard
                   onClick={() => setShowPuzzle(true)}
                   icon={<PuzzleIcon className="h-4 w-4" />}
                   title="Desafío"
-                  desc="Mate diario"
                   accent="sky"
+                  compact
+                />
+                <QuickCard
+                  onClick={() => setShowRush(true)}
+                  icon={<Zap className="h-4 w-4" />}
+                  title="Rush"
+                  accent="fuchsia"
                   compact
                 />
                 <QuickCard
                   onClick={() => setShowOpenings(true)}
                   icon={<GraduationCap className="h-4 w-4" />}
                   title="Aprender"
-                  desc="Aperturas"
                   accent="indigo"
                   compact
                 />
@@ -213,7 +221,6 @@ export default function Home() {
                   onClick={() => setShowAchievements(true)}
                   icon={<Award className="h-4 w-4" />}
                   title="Logros"
-                  desc="Insignias"
                   accent="amber"
                   compact
                 />
@@ -340,6 +347,7 @@ export default function Home() {
         open={showOpenings}
         onOpenChange={setShowOpenings}
       />
+      <PuzzleRushDialog open={showRush} onOpenChange={setShowRush} />
     </div>
   );
 }
@@ -450,8 +458,8 @@ function QuickCard({
   onClick: () => void;
   icon: React.ReactNode;
   title: string;
-  desc: string;
-  accent: "sky" | "amber" | "indigo";
+  desc?: string;
+  accent: "sky" | "amber" | "indigo" | "fuchsia";
   compact?: boolean;
 }) {
   const borderClass =
@@ -459,13 +467,17 @@ function QuickCard({
       ? "border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
       : accent === "amber"
         ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20"
-        : "border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20";
+        : accent === "fuchsia"
+          ? "border-fuchsia-500/40 bg-fuchsia-500/10 hover:bg-fuchsia-500/20"
+          : "border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20";
   const gradClass =
     accent === "sky"
       ? "bg-gradient-to-br from-sky-500 to-indigo-500"
       : accent === "amber"
         ? "bg-gradient-to-br from-amber-500 to-orange-500"
-        : "bg-gradient-to-br from-indigo-500 to-purple-500";
+        : accent === "fuchsia"
+          ? "bg-gradient-to-br from-fuchsia-500 to-pink-500"
+          : "bg-gradient-to-br from-indigo-500 to-purple-500";
   return (
     <button
       onClick={onClick}
@@ -485,12 +497,14 @@ function QuickCard({
         {icon}
       </div>
       <div className={compact ? "text-center" : "text-left"}>
-        <div className={compact ? "text-xs font-semibold leading-tight" : "text-sm font-semibold"}>
+        <div className={compact ? "text-[11px] font-semibold leading-tight" : "text-sm font-semibold"}>
           {title}
         </div>
-        <div className="text-[10px] text-muted-foreground leading-tight">
-          {desc}
-        </div>
+        {desc && (
+          <div className="text-[10px] text-muted-foreground leading-tight">
+            {desc}
+          </div>
+        )}
       </div>
     </button>
   );

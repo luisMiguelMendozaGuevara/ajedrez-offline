@@ -10,7 +10,7 @@ import {
   isInCheck,
   findKing,
 } from "@/lib/chess/engine";
-import { findBestMove } from "@/lib/chess/ai";
+import { findBestMove, resetTranspositionTable } from "@/lib/chess/ai";
 import { toSan } from "@/lib/chess/notation";
 import {
   GameState,
@@ -581,6 +581,9 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     set({ thinking: true });
     // Defer to allow UI to update; AI runs synchronously but quick
     setTimeout(() => {
+      // Reset transposition table before each move to keep memory bounded
+      // and avoid stale entries from a different game context.
+      resetTranspositionTable();
       const move = findBestMove(state, mode.difficulty ?? "medium");
       set({ thinking: false });
       if (move) {

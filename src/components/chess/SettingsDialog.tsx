@@ -7,7 +7,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSettings, getBoardTheme } from "@/hooks/useSettings";
-import { BOARD_THEMES, BoardThemeId, loadStats, resetStats } from "@/lib/chess/storage";
+import {
+  BOARD_THEMES,
+  BoardThemeId,
+  PIECE_STYLES,
+  PieceStyleId,
+  loadStats,
+  resetStats,
+} from "@/lib/chess/storage";
+import { ChessPiece } from "./ChessPiece";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
@@ -167,6 +175,38 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </div>
                     <span className="text-[9px] font-medium text-muted-foreground leading-none text-center">
                       {t.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Piece style */}
+          <section>
+            <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 mt-4">
+              <Palette className="h-3.5 w-3.5" />
+              Estilo de piezas
+            </h3>
+            <div className="grid grid-cols-5 gap-1.5">
+              {PIECE_STYLES.map((p) => {
+                const active = settings.pieceStyle === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => settings.setPieceStyle(p.id as PieceStyleId)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-lg p-1.5 border-2 transition-all",
+                      active
+                        ? "border-emerald-500 bg-emerald-500/10"
+                        : "border-transparent hover:border-border"
+                    )}
+                  >
+                    <div className="flex h-9 w-9 items-center justify-center rounded bg-card text-2xl ring-1 ring-black/10">
+                      <ChessPiece type="n" color="w" pieceStyle={p.id as PieceStyleId} />
+                    </div>
+                    <span className="text-[9px] font-medium text-muted-foreground leading-none text-center">
+                      {p.name}
                     </span>
                   </button>
                 );
