@@ -9,6 +9,7 @@ import { MoveHistory } from "@/components/chess/MoveHistory";
 import { PromotionDialog } from "@/components/chess/PromotionDialog";
 import { GameOverDialog } from "@/components/chess/GameOverDialog";
 import { GameSetup } from "@/components/chess/GameSetup";
+import { SettingsDialog } from "@/components/chess/SettingsDialog";
 import { GameMode, PieceColor } from "@/lib/chess/types";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,9 +17,10 @@ import {
   History,
   Sun,
   Moon,
+  Settings2,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ChessLogo } from "@/components/chess/ChessLogo";
 import {
   Sheet,
   SheetContent,
@@ -27,24 +29,56 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
+import { ChessLogo } from "@/components/chess/ChessLogo";
 
 export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [hasResume, setHasResume] = useState(false);
 
   const newGame = useChessGame((s) => s.newGame);
   const mode = useChessGame((s) => s.mode);
   const flipped = useChessGame((s) => s.flipped);
   const history = useChessGame((s) => s.history);
 
+  // Check for a saved game on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("chess:game:v1");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (parsed?.state?.board && parsed?.mode) setHasResume(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const handleStart = (m: GameMode) => {
     newGame(m);
     setGameStarted(true);
+    setHasResume(false);
+  };
+
+  const handleResume = () => {
+    const ok = useChessGame.getState().loadSaved();
+    if (ok) {
+      setGameStarted(true);
+      setHasResume(false);
+      toast.success("Partida restaurada");
+    } else {
+      setHasResume(false);
+      toast.error("No se pudo restaurar la partida");
+    }
   };
 
   const handleNewGame = () => {
     setGameStarted(false);
     useChessGame.getState().clearSelection();
+    setHasResume(false);
   };
 
   const handleRematch = () => {
@@ -71,7 +105,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-950 dark:to-slate-900">
-      <Header onBack={gameStarted ? handleNewGame : undefined} />
+      <Header
+        onBack={gameStarted ? handleNewGame : undefined}
+        onOpenSettings={() => setShowSettings(true)}
+      />
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-3 pb-4 flex flex-col">
         <AnimatePresence mode="wait">
@@ -85,6 +122,21 @@ export default function Home() {
               className="flex-1 flex flex-col items-center justify-center py-6"
             >
               <HeroBanner />
+              {hasResume && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-4 w-full max-w-md"
+                >
+                  <button
+                    onClick={handleResume}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-600 dark:text-amber-400 transition-colors"
+                  >
+                    <Play className="h-4 w-4" />
+                    Continuar partida guardada
+                  </button>
+                </motion.div>
+              )}
               <div className="w-full mt-6">
                 <GameSetup onStart={handleStart} />
               </div>
@@ -113,7 +165,10 @@ export default function Home() {
               />
 
               <div className="mt-1">
-                <GameControls onNewGame={handleNewGame} />
+                <GameControls
+                  onNewGame={handleNewGame}
+                  onOpenSettings={() => setShowSettings(true)}
+                />
               </div>
 
               {/* Move history toggle (mobile) */}
@@ -157,11 +212,18 @@ export default function Home() {
 
       <PromotionDialog />
       <GameOverDialog onNewGame={handleNewGame} onRematch={handleRematch} />
+      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
 }
 
-function Header({ onBack }: { onBack?: () => void }) {
+function Header({
+  onBack,
+  onOpenSettings,
+}: {
+  onBack?: () => void;
+  onOpenSettings: () => void;
+}) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -193,20 +255,34 @@ function Header({ onBack }: { onBack?: () => void }) {
           </div>
         </div>
 
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-0.5">
+          {mounted && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title="Cambiar tema"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+          {!onBack && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0"
+              onClick={onOpenSettings}
+              title="Ajustes"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -243,3 +319,4 @@ function Footer() {
     </footer>
   );
 }
+

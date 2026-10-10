@@ -1,6 +1,7 @@
 "use client";
 
 import { useChessGame, isKingInCheckSquare } from "@/hooks/useChessGame";
+import { useSettings, getBoardTheme } from "@/hooks/useSettings";
 import { ChessPiece } from "./ChessPiece";
 import { Square } from "@/lib/chess/types";
 import { cn } from "@/lib/utils";
@@ -23,8 +24,14 @@ export function ChessBoard({ size }: ChessBoardProps) {
     mode,
     status,
     thinking,
+    hintMove,
   } = useChessGame();
 
+  const boardThemeId = useSettings((s) => s.boardTheme);
+  const showCoordinates = useSettings((s) => s.showCoordinates);
+  const highlightLastMove = useSettings((s) => s.highlightLastMove);
+
+  const theme = getBoardTheme(boardThemeId);
   const checkSquare = isKingInCheckSquare(state, state.turn);
 
   // Build the visual ordering of rows/cols based on orientation
@@ -42,7 +49,6 @@ export function ChessBoard({ size }: ChessBoardProps) {
   );
 
   function handleSquareClick(sq: Square) {
-    // In AI mode, ignore clicks when it's not the human's turn or AI is thinking
     const { thinking } = useChessGame.getState();
     if (thinking) return;
     if (mode.type === "ai" && state.turn !== mode.playerColor) return;
@@ -51,15 +57,15 @@ export function ChessBoard({ size }: ChessBoardProps) {
 
   return (
     <div
-      className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/20"
+      className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/30"
       style={{
-        background: "linear-gradient(135deg, #3a2a1a, #2a1d10)",
+        background: theme.border,
         padding: "clamp(6px, 1.5vw, 10px)",
         maxWidth: "min(92vw, 540px, 62vh)",
         aspectRatio: "1 / 1",
       }}
     >
-      <div className="relative w-full h-full rounded-lg overflow-hidden shadow-inner">
+      <div className="relative w-full h-full rounded-lg overflow-hidden shadow-inner ring-1 ring-black/10">
         <div
           className="grid w-full h-full"
           style={{
@@ -77,15 +83,25 @@ export function ChessBoard({ size }: ChessBoardProps) {
               const isLegalTarget = legalTargets.has(key);
               const isCaptureTarget = captureTargets.has(key);
               const isLastFrom =
-                lastMove && lastMove.from.row === r && lastMove.from.col === c;
+                highlightLastMove &&
+                lastMove &&
+                lastMove.from.row === r &&
+                lastMove.from.col === c;
               const isLastTo =
-                lastMove && lastMove.to.row === r && lastMove.to.col === c;
+                highlightLastMove &&
+                lastMove &&
+                lastMove.to.row === r &&
+                lastMove.to.col === c;
               const isCheck =
                 checkSquare && checkSquare.row === r && checkSquare.col === c;
+              const isHintFrom =
+                hintMove && hintMove.from.row === r && hintMove.from.col === c;
+              const isHintTo =
+                hintMove && hintMove.to.row === r && hintMove.to.col === c;
 
               // Coordinate labels
-              const showFileLabel = flipped ? r === 0 : r === 7;
-              const showRankLabel = flipped ? c === 7 : c === 0;
+              const showFileLabel = showCoordinates && (flipped ? r === 0 : r === 7);
+              const showRankLabel = showCoordinates && (flipped ? c === 7 : c === 0);
               const fileChar = FILES[c];
               const rankNum = 8 - r;
 
@@ -95,20 +111,34 @@ export function ChessBoard({ size }: ChessBoardProps) {
                   onClick={() => handleSquareClick({ row: r, col: c })}
                   className={cn(
                     "relative flex items-center justify-center transition-colors duration-100",
-                    isLight ? "bg-[#ebd2a8]" : "bg-[#a87b54]"
+                    isLight ? "" : ""
                   )}
                   style={{
+                    backgroundColor: isLight ? theme.light : theme.dark,
                     fontSize: size ? `${size * 0.075}px` : "clamp(1.5rem, 7vw, 2.6rem)",
                   }}
                   aria-label={`Casilla ${fileChar}${rankNum}`}
                 >
                   {/* last move highlight */}
                   {(isLastFrom || isLastTo) && (
-                    <span className="absolute inset-0 bg-amber-300/45 pointer-events-none" />
+                    <span className="absolute inset-0 bg-amber-300/50 pointer-events-none" />
+                  )}
+                  {/* hint highlight */}
+                  {(isHintFrom || isHintTo) && (
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0.5, 0.9, 0.5] }}
+                      transition={{ duration: 1.4, repeat: Infinity }}
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(56,189,248,0.55), rgba(14,165,233,0.45))",
+                      }}
+                    />
                   )}
                   {/* selected highlight */}
                   {isSelected && (
-                    <span className="absolute inset-0 bg-emerald-400/55 pointer-events-none" />
+                    <span className="absolute inset-0 bg-emerald-400/60 pointer-events-none" />
                   )}
                   {/* check highlight */}
                   {isCheck && (
@@ -116,7 +146,7 @@ export function ChessBoard({ size }: ChessBoardProps) {
                       className="absolute inset-0 pointer-events-none animate-pulse"
                       style={{
                         background:
-                          "radial-gradient(circle, rgba(239,68,68,0.85) 0%, rgba(239,68,68,0.35) 55%, transparent 75%)",
+                          "radial-gradient(circle, rgba(239,68,68,0.9) 0%, rgba(239,68,68,0.35) 55%, transparent 75%)",
                       }}
                     />
                   )}
@@ -124,20 +154,16 @@ export function ChessBoard({ size }: ChessBoardProps) {
                   {/* coordinate labels */}
                   {showRankLabel && (
                     <span
-                      className={cn(
-                        "absolute top-[2px] left-[3px] text-[9px] font-bold leading-none pointer-events-none",
-                        isLight ? "text-[#a87b54]" : "text-[#ebd2a8]"
-                      )}
+                      className="absolute top-[2px] left-[3px] text-[9px] font-bold leading-none pointer-events-none opacity-80"
+                      style={{ color: isLight ? theme.dark : theme.light }}
                     >
                       {rankNum}
                     </span>
                   )}
                   {showFileLabel && (
                     <span
-                      className={cn(
-                        "absolute bottom-[1px] right-[3px] text-[9px] font-bold leading-none pointer-events-none",
-                        isLight ? "text-[#a87b54]" : "text-[#ebd2a8]"
-                      )}
+                      className="absolute bottom-[1px] right-[3px] text-[9px] font-bold leading-none pointer-events-none opacity-80"
+                      style={{ color: isLight ? theme.dark : theme.light }}
                     >
                       {fileChar}
                     </span>
@@ -145,19 +171,24 @@ export function ChessBoard({ size }: ChessBoardProps) {
 
                   {/* piece */}
                   {piece && (
-                    <ChessPiece
-                      type={piece.type}
-                      color={piece.color}
+                    <motion.span
+                      layoutId={`piece-${r}-${c}-${piece.type}-${piece.color}`}
                       className="relative z-10"
-                    />
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    >
+                      <ChessPiece
+                        type={piece.type}
+                        color={piece.color}
+                      />
+                    </motion.span>
                   )}
 
                   {/* legal move indicator */}
                   {isLegalTarget && !isCaptureTarget && !piece && (
-                    <span className="absolute w-[30%] h-[30%] rounded-full bg-emerald-700/45 pointer-events-none z-20" />
+                    <span className="absolute w-[28%] h-[28%] rounded-full bg-emerald-700/40 pointer-events-none z-20 shadow-inner" />
                   )}
                   {isLegalTarget && (isCaptureTarget || piece) && (
-                    <span className="absolute inset-[6%] rounded-full border-4 border-emerald-700/55 pointer-events-none z-20" />
+                    <span className="absolute inset-[8%] rounded-full border-[3px] border-emerald-700/60 pointer-events-none z-20" />
                   )}
                 </button>
               );
@@ -169,12 +200,16 @@ export function ChessBoard({ size }: ChessBoardProps) {
         <AnimatePresence>
           {thinking && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute top-2 right-2 z-30 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="absolute top-2 right-2 z-30 flex items-center gap-2 rounded-full bg-black/75 px-3 py-1.5 backdrop-blur shadow-lg"
             >
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="flex gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:-0.2s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:-0.1s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" />
+              </span>
               <span className="text-[11px] font-medium text-white">
                 Pensando…
               </span>
@@ -184,7 +219,7 @@ export function ChessBoard({ size }: ChessBoardProps) {
       </div>
 
       {status === "check" && (
-        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-amber-300 text-xs font-semibold">
+        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-amber-300 text-xs font-semibold drop-shadow">
           ¡Jaque!
         </div>
       )}

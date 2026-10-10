@@ -21,6 +21,15 @@ import {
   PieceType,
   Square,
 } from "@/lib/chess/types";
+import {
+  saveGame,
+  clearSavedGame,
+  loadGame,
+  recordGame,
+  humanOutcome,
+} from "@/lib/chess/storage";
+import { playSound, playHaptic } from "@/lib/chess/sound";
+import { useSettings } from "./useSettings";
 
 export interface HistoryEntry {
   move: Move;
@@ -44,6 +53,8 @@ interface ChessStore {
   capturedByWhite: PieceType[];
   capturedByBlack: PieceType[];
   flipped: boolean; // board orientation
+  hintMove: { from: Square; to: Square } | null;
+  statsRecorded: boolean; // prevents double counting after game over
 
   // actions
   newGame: (mode: GameMode) => void;
@@ -57,6 +68,9 @@ interface ChessStore {
   flipBoard: () => void;
   setMode: (mode: GameMode) => void;
   aiMove: () => void;
+  showHint: () => void;
+  clearHint: () => void;
+  loadSaved: () => boolean;
 }
 
 function computeStatus(state: GameState): {
@@ -88,9 +102,12 @@ export const useChessGame = create<ChessStore>((set, get) => ({
   capturedByWhite: [],
   capturedByBlack: [],
   flipped: false,
+  hintMove: null,
+  statsRecorded: false,
 
   newGame: (mode) => {
     const state = initialState();
+    clearSavedGame();
     set({
       state,
       mode,
@@ -105,6 +122,8 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       capturedByWhite: [],
       capturedByBlack: [],
       flipped: mode.type === "ai" && mode.playerColor === "b",
+      hintMove: null,
+      statsRecorded: false,
     });
     // If AI plays white, make first move
     if (mode.type === "ai" && mode.playerColor === "b") {
@@ -118,9 +137,60 @@ export const useChessGame = create<ChessStore>((set, get) => ({
 
   flipBoard: () => set((s) => ({ flipped: !s.flipped })),
 
+  loadSaved: () => {
+    const saved = loadGame();
+    if (!saved) return false;
+    // Don't restore finished games
+    if (
+      saved.state.turn === undefined ||
+      !Array.isArray(saved.state.board)
+    )
+      return false;
+    // Quick status check to avoid restoring a finished game
+    const { status } = computeStatus(saved.state);
+    if (
+      status === "checkmate" ||
+      status === "stalemate" ||
+      status === "draw"
+    ) {
+      clearSavedGame();
+      return false;
+    }
+    set({
+      state: saved.state,
+      mode: saved.mode,
+      history: saved.history,
+      status,
+      winner: null,
+      selected: null,
+      legalForSelected: [],
+      lastMove:
+        saved.history.length > 0
+          ? {
+              from: saved.history[saved.history.length - 1].move.from,
+              to: saved.history[saved.history.length - 1].move.to,
+            }
+          : null,
+      thinking: false,
+      promotionPending: null,
+      capturedByWhite: saved.capturedByWhite,
+      capturedByBlack: saved.capturedByBlack,
+      flipped: saved.flipped,
+      hintMove: null,
+      statsRecorded: false,
+    });
+    // If it's AI's turn, trigger it
+    const { mode, state } = get();
+    if (mode.type === "ai" && state.turn !== mode.playerColor) {
+      setTimeout(() => get().aiMove(), 300);
+    }
+    return true;
+  },
+
   selectSquare: (sq) => {
     const { state, selected, legalForSelected, mode } = get();
     const piece = state.board[sq.row][sq.col];
+    const settings = useSettings.getState();
 
     // If a square is already selected, try to move
     if (selected) {
@@ -140,6 +210,7 @@ export const useChessGame = create<ChessStore>((set, get) => ({
             promotionPending: { from: selected, to: sq },
             selected: null,
             legalForSelected: [],
+            hintMove: null,
           });
           return;
         }
@@ -149,7 +220,9 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       // clicked own piece -> reselect
       if (piece && piece.color === state.turn) {
         const legal = getLegalMovesFrom(state, sq);
-        set({ selected: sq, legalForSelected: legal });
+        set({ selected: sq, legalForSelected: legal, hintMove: null });
+        playSound("select", settings.soundEnabled);
+        playHaptic(8, settings.hapticsEnabled);
         return;
       }
       // clicked elsewhere -> deselect
@@ -162,21 +235,51 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       // In AI mode, only allow selecting human's color
       if (mode.type === "ai" && piece.color !== mode.playerColor) return;
       const legal = getLegalMovesFrom(state, sq);
-      set({ selected: sq, legalForSelected: legal });
+      if (legal.length > 0) {
+        set({ selected: sq, legalForSelected: legal, hintMove: null });
+        playSound("select", settings.soundEnabled);
+        playHaptic(8, settings.hapticsEnabled);
+      }
     }
   },
 
   clearSelection: () => set({ selected: null, legalForSelected: [] }),
 
+  showHint: () => {
+    const { state, mode, status, thinking, hintMove } = get();
+    if (
+      status === "checkmate" ||
+      status === "stalemate" ||
+      status === "draw" ||
+      status === "resigned"
+    )
+      return;
+    if (thinking) return;
+    if (mode.type !== "ai") return;
+    if (state.turn !== mode.playerColor) return;
+    // Use the same engine (medium difficulty) to get a suggestion
+    const best = findBestMove(state, "medium");
+    if (best) {
+      set({ hintMove: { from: best.from, to: best.to } });
+      // auto-clear after a few seconds
+      setTimeout(() => {
+        if (get().hintMove) set({ hintMove: null });
+      }, 4000);
+    }
+    void hintMove;
+  },
+
+  clearHint: () => set({ hintMove: null }),
+
   makeMove: (move) => {
     const { state, history, capturedByWhite, capturedByBlack } = get();
     const san = toSan(state, move);
     const newState = applyMove(state, move);
+    const settings = useSettings.getState();
 
     const newCapturedByWhite = [...capturedByWhite];
     const newCapturedByBlack = [...capturedByBlack];
     if (move.captured) {
-      // captured piece belonged to the opponent of move.color
       if (move.color === "w") newCapturedByWhite.push(move.captured);
       else newCapturedByBlack.push(move.captured);
     }
@@ -191,6 +294,24 @@ export const useChessGame = create<ChessStore>((set, get) => ({
 
     const { status, winner } = computeStatus(newState);
 
+    // Sound effects
+    if (status === "checkmate") {
+      playSound("gameEnd", settings.soundEnabled);
+      playHaptic([30, 50, 30, 50, 80], settings.hapticsEnabled);
+    } else if (status === "check") {
+      playSound("check", settings.soundEnabled);
+      playHaptic([20, 30, 20], settings.hapticsEnabled);
+    } else if (move.isCastle) {
+      playSound("castle", settings.soundEnabled);
+      playHaptic(15, settings.hapticsEnabled);
+    } else if (move.captured) {
+      playSound("capture", settings.soundEnabled);
+      playHaptic(20, settings.hapticsEnabled);
+    } else {
+      playSound("move", settings.soundEnabled);
+      playHaptic(10, settings.hapticsEnabled);
+    }
+
     set({
       state: newState,
       history: [...history, entry],
@@ -202,10 +323,38 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       capturedByWhite: newCapturedByWhite,
       capturedByBlack: newCapturedByBlack,
       promotionPending: null,
+      hintMove: null,
     });
 
+    // Record stats on game end (once)
+    const { mode, statsRecorded } = get();
+    const finished =
+      status === "checkmate" ||
+      status === "stalemate" ||
+      status === "draw";
+    if (finished && !statsRecorded) {
+      const totalMoves = newState.fullmoveNumber;
+      if (mode.type === "ai") {
+        const outcome = humanOutcome(status, winner, mode.playerColor);
+        if (outcome) recordGame(outcome, totalMoves, true);
+      } else {
+        recordGame("draw", totalMoves, false);
+      }
+      set({ statsRecorded: true });
+      clearSavedGame();
+    } else {
+      // Persist ongoing game
+      saveGame({
+        state: newState,
+        mode,
+        history: [...history, entry],
+        capturedByWhite: newCapturedByWhite,
+        capturedByBlack: newCapturedByBlack,
+        flipped: get().flipped,
+      });
+    }
+
     // Trigger AI if it's AI's turn and game still going
-    const { mode } = get();
     if (
       mode.type === "ai" &&
       status !== "checkmate" &&
@@ -255,9 +404,6 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     const newHistory = history.slice(0, history.length - steps);
     const lastEntry = newHistory[newHistory.length - 1];
     const newState = lastEntry ? lastEntry.stateBefore : initialState();
-    // We need to replay from start to get the state BEFORE last move... 
-    // Actually stateBefore is the state before that move was made.
-    // If newHistory empty -> initial state
     let restoredState: GameState;
     let restoredCapturedW: PieceType[];
     let restoredCapturedB: PieceType[];
@@ -268,9 +414,6 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       restoredCapturedB = [];
       restoredLastMove = null;
     } else {
-      // state before the last move of newHistory is what we want? No.
-      // We want the state AFTER applying all moves in newHistory.
-      // Rebuild by applying moves from initial state.
       let s = initialState();
       let capW: PieceType[] = [];
       let capB: PieceType[] = [];
@@ -288,6 +431,9 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       restoredLastMove = { from: lastM.from, to: lastM.to };
     }
     const { status, winner } = computeStatus(restoredState);
+    const settings = useSettings.getState();
+    playSound("move", settings.soundEnabled);
+    playHaptic(12, settings.hapticsEnabled);
     set({
       state: restoredState,
       history: newHistory,
@@ -300,15 +446,45 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       capturedByBlack: restoredCapturedB,
       thinking: false,
       promotionPending: null,
+      hintMove: null,
     });
+    // Persist the undone state
+    if (newHistory.length === 0) {
+      clearSavedGame();
+    } else {
+      saveGame({
+        state: restoredState,
+        mode,
+        history: newHistory,
+        capturedByWhite: restoredCapturedW,
+        capturedByBlack: restoredCapturedB,
+        flipped: get().flipped,
+      });
+    }
     void newState;
     void lastEntry;
   },
 
   resign: () => {
-    const { mode, state } = get();
-    const winner = mode.type === "ai" ? opposite(mode.playerColor) : opposite(state.turn);
-    set({ status: "resigned", winner, thinking: false });
+    const { mode, state, statsRecorded } = get();
+    const winner =
+      mode.type === "ai"
+        ? opposite(mode.playerColor)
+        : opposite(state.turn);
+    const settings = useSettings.getState();
+    playSound("gameEnd", settings.soundEnabled);
+    playHaptic([30, 50, 80], settings.hapticsEnabled);
+    // Record a loss for the human (AI mode)
+    if (mode.type === "ai" && !statsRecorded) {
+      recordGame("loss", state.fullmoveNumber, true);
+    }
+    set({
+      status: "resigned",
+      winner,
+      thinking: false,
+      statsRecorded: true,
+    });
+    clearSavedGame();
   },
 
   aiMove: () => {
