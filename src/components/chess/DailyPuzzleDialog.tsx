@@ -312,7 +312,7 @@ export function DailyPuzzleDialog({ open, onOpenChange }: DailyPuzzleDialogProps
                 Más puzzles
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                {VALID_PUZZLES.slice(0, 6).map((p) => {
+                {VALID_PUZZLES.slice(0, 12).map((p) => {
                   const isSolved = !!solvedMap[p.id];
                   const isActive = p.id === puzzle.id;
                   return (

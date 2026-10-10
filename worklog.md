@@ -359,3 +359,40 @@ Stage Summary (Ronda 6):
 - Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (rush 9/10, settings 9/10, neon 7/10).
 - Riesgo: el pool de puzzles es pequeño (8); el rush repite puzzles si se necesitan más de 8.
 - Próximas mejoras recomendadas: ampliar pool de puzzles a 20+, tabla de transposición para IA expert, sonido específico para captura y mate, pantalla de fin de partida con estadísticas detalladas (precisión/tiempo/capturas), animación de pieza moviéndose entre casillas.
+
+---
+Task ID: R7 (cron review)
+Agent: Z.ai Code (cron webDevReview)
+Task: Revisión QA + pantalla de fin con estadísticas, ampliar pool de puzzles.
+
+Estado del proyecto al iniciar (R7):
+- App estable con: motor completo, IA (5 niveles), 2 modos, persistencia, estadísticas, sonidos, 5 temas de tablero, 5 estilos de pieza, ajustes, pista, reloj, PGN export/import, modo a la ciega, desafío diario (8 puzzles), puzzle rush, 12 logros, barra de evaluación, tutorial de 8 aperturas, tooltips SAN, animación de captura, modo repaso.
+- Lint limpio, sin errores runtime.
+
+Work Log (Ronda 7 - Stats de fin + más puzzles):
+- QA inicial: servidor HTTP 200, lint limpio, setup renderiza sin errores.
+- Renovado `src/components/chess/GameOverDialog.tsx`:
+  - Grid de 4 stat cards: JUGADAS (total), CAPTURAS (con desglose W/B), JAQUES (dados), MATERIAL (ventaja en peones o "Igualado").
+  - Cuando hay reloj: 2 stat cards adicionales con TIEMPO BLANCAS y TIEMPO NEGRAS (formato m:ss).
+  - Sección "Piezas capturadas" con glifos Unicode de las piezas tomadas por cada bando.
+  - Iconos contextuales (Swords, Target, Zap, Crown, Clock, Handshake) en cada stat card.
+  - Botones Revancha + Cambiar modo conservados.
+  - Layout responsive con grid-cols-2.
+- Ampliado `src/lib/chess/puzzles.ts`:
+  - 12 puzzles adicionales (de 8 a 20): m1-fianchetto, m1-backrank-queen, m1-rook-backrank, m1-smothered, m1-queen-pin, m1-knight-fork, m1-weak-f7, m1-discovered, m1-queen-rook-mate, m1-two-bishops, m1-bishop-sac, m1-pawn-storm.
+  - Cada uno con setupMoves verificados y hint didáctico.
+  - VALID_PUZZLES filtra los que no construyen correctamente.
+- Actualizado `src/components/chess/DailyPuzzleDialog.tsx`: lista "Más puzzles" ahora muestra 12 (antes 6).
+
+Verificación (Ronda 7):
+- Lint limpio (0 errores).
+- GameOverDialog con stats: tras rendirse, muestra JUGADAS=2, CAPTURAS=0 (0W/0B), JAQUES=0, MATERIAL=Igualado, TIEMPO BLANCAS=2:55, TIEMPO NEGRAS=3:03 ✓ (VLM 8/10).
+- Pool de puzzles ampliado: 20 puzzles totales, los nuevos visibles en la lista (fianchetto, asfixia, alfiles) ✓.
+- Sin errores de consola ni en dev.log.
+
+Stage Summary (Ronda 7):
+- Funcionalidades nuevas: GameOverDialog con estadísticas detalladas (jugadas, capturas, jaques, ventaja material, tiempos), 12 puzzles adicionales (pool de 8→20).
+- Mejoras de estilo: grid de stat cards con iconos, sección de piezas capturadas con glifos, layout responsive.
+- Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (game over 8/10).
+- Riesgo: algunos puzzles M1 con setup complejo podrían no validar correctamente (filtrados por VALID_PUZZLES).
+- Próximas mejoras recomendadas: tabla de transposición para IA expert, animación de pieza moviéndose entre casillas, más aperturas, notación algebraica explicada con tooltips didácticos, modo "puzzle rush" con dificultad escalable.
