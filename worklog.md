@@ -255,3 +255,55 @@ Stage Summary (Ronda 4):
 - Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (9/10 setup, 8/10 openings).
 - Riesgo: el set de aperturas es pequeño (4); conviene añadir más (Francesa, Caro-Kann, Pirc, etc.).
 - Próximas mejoras recomendadas: más aperturas (5-8), modo "repasar partida" paso a paso con controles ◀▶ en la partida jugada, tabla de transposición para IA expert, puzzles M2/M3 verificados, pieza de audio para captura/mate.
+
+---
+Task ID: R5 (cron review)
+Agent: Z.ai Code (cron webDevReview)
+Task: Revisión QA + añadir modo repaso de partida, más aperturas, más puzzles.
+
+Estado del proyecto al iniciar (R5):
+- App estable con: motor completo, IA (5 niveles), 2 modos, persistencia, estadísticas, sonidos, 5 temas, ajustes, pista, reloj, PGN export/import, modo a la ciega, desafío diario (5 puzzles), 12 logros, barra de evaluación, tutorial de 4 aperturas, tooltips SAN, animación de captura.
+- Lint limpio, sin errores runtime.
+
+Work Log (Ronda 5 - Repaso + contenido educativo):
+- QA inicial: servidor HTTP 200, lint limpio, setup renderiza sin errores.
+- Añadido modo Repaso de partida en `src/hooks/useChessGame.ts`:
+  - Estado: `reviewMode`, `reviewPly`, `reviewTotal`.
+  - Acciones: `enterReview()` (entra al modo en la última jugada), `exitReview()` (restaura estado en vivo), `reviewStep(delta)` (avanza/retrocede N plies), `reviewTo(ply)` (salta a una jugada).
+  - `reviewStep` reconstruye el estado desde la posición inicial aplicando los moves hasta el ply objetivo, recalcando piezas capturadas y último movimiento.
+  - Reset en `newGame`.
+  - `ChessBoard` ignora clics cuando `reviewMode` está activo.
+- Creado `src/components/chess/ReviewBar.tsx`:
+  - Botón de entrada "Repasar partida (N jugadas)" visible tras tener historial.
+  - Barra con label "Modo repaso", contador "X/N", barra de progreso animada (gradiente indigo→purple), y slider invisible para scrub.
+  - 5 controles: ⏮ (inicio), ◀ (anterior), ▶ (siguiente), ⏭ (final), ⟲ (reiniciar a inicio).
+  - Display de la jugada actual con SAN.
+  - Botón ✕ para salir del repaso.
+  - Reinicio automático al salir.
+- Integrado ReviewBar en `src/app/page.tsx` entre los controles y el historial.
+- Añadidas 4 aperturas más en `src/lib/chess/openings.ts`:
+  - Defensa Francesa (C00): centro asimétrico, peón rey atrasado, ataque temático c5.
+  - Defensa Caro-Kann (B10): sólida, desarrollo del alfil f5 antes de enrocar.
+  - Apertura Inglesa (A20): control lateral del centro con c4, fianchetto.
+  - Defensa Pirc (B07): hipermoderna, fianchetto y ataque al centro blanco.
+  - Total: 8 aperturas con comentarios didácticos.
+- Añadidos 3 puzzles más en `src/lib/chess/puzzles.ts`:
+  - Mate de Boden (M2): persecución de dama con Qh7+ Kf8 Qh8#.
+  - Dama y caballo (M2): mate en f7 con apoyo de caballo.
+  - Trampa estilo Anastasia (M1): captura de caballo con jaque por diagonal.
+  - Total: 8 puzzles (4 M1 + 2 M2 + 2 mixtos).
+
+Verificación (Ronda 5):
+- Lint limpio (0 errores).
+- Setup renderiza, sin errores de consola.
+- Repaso de partida: tras jugar 4 plies (e4, respuesta IA, Nf3, respuesta IA), botón "Repasar partida (4 jugadas)" visible; al entrar muestra "Modo repaso 4/4" con barra de progreso y 5 controles; al retroceder muestra "3/4" ✓ (VLM 9/10).
+- Aperturas: las 8 aperturas visibles (Ruy López, Italiana, Siciliana, Gambito de Dama + Francesa, Caro-Kann, Inglesa, Pirc) ✓.
+- Puzzles: los nuevos puzzles visibles (Boden, Anastasia) ✓.
+- Sin errores de consola ni en dev.log.
+
+Stage Summary (Ronda 5):
+- Funcionalidades nuevas: Modo Repaso de partida (navegación paso a paso con slider scrub + 5 controles), 4 aperturas adicionales (Francesa, Caro-Kann, Inglesa, Pirc), 3 puzzles adicionales (Boden M2, Dama+caballo M2, Anastasia M1).
+- Mejoras de estilo: ReviewBar con barra de progreso gradiente animada, controles compactos, label "Modo repaso", contador monoespaciado.
+- Estado: estable, lint limpio, verificado end-to-end con agent-browser + VLM (review 9/10).
+- Riesgo: los puzzles M2/M3 con varias jugadas del jugador podrían necesitar oponente automático para las respuestas intermedias (actualmente solo valida la jugada del lado que mueve).
+- Próximas mejoras recomendadas: oponente automático en puzzles M2/M3 para las respuestas, tabla de transposición para IA expert, sonido específico para captura y mate, más puzzles verificados, modo "puzzle rush" cronometrado.

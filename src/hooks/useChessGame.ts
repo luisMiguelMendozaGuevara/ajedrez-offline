@@ -66,6 +66,10 @@ interface ChessStore {
   lastTickAt: number | null; // timestamp of last clock update
   // PGN replay
   replayMode: boolean;
+  // Review mode (repaso): step through a played game
+  reviewMode: boolean; // currently reviewing a played game
+  reviewPly: number; // number of plies shown (0 = initial position)
+  reviewTotal: number; // total plies available to review
 
   // actions
   newGame: (mode: GameMode) => void;
@@ -85,6 +89,11 @@ interface ChessStore {
   tickClock: () => void;
   exportPgn: () => string;
   loadPgn: (pgn: string) => boolean;
+  // Review controls
+  enterReview: () => void;
+  exitReview: () => void;
+  reviewStep: (delta: number) => void; // -1 back, +1 forward
+  reviewTo: (ply: number) => void;
 }
 
 function computeStatus(state: GameState): {
@@ -122,6 +131,9 @@ export const useChessGame = create<ChessStore>((set, get) => ({
   blackTime: 0,
   lastTickAt: null,
   replayMode: false,
+  reviewMode: false,
+  reviewPly: 0,
+  reviewTotal: 0,
 
   newGame: (mode) => {
     const state = initialState();
@@ -147,6 +159,9 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       blackTime: initialTime,
       lastTickAt: initialTime > 0 ? Date.now() : null,
       replayMode: false,
+      reviewMode: false,
+      reviewPly: 0,
+      reviewTotal: 0,
     });
     // If AI plays white, make first move
     if (mode.type === "ai" && mode.playerColor === "b") {
@@ -697,6 +712,67 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       lastTickAt: null,
     });
     return true;
+  },
+
+  enterReview: () => {
+    const { history } = get();
+    if (history.length === 0) return;
+    set({
+      reviewMode: true,
+      reviewPly: history.length,
+      reviewTotal: history.length,
+    });
+  },
+
+  exitReview: () => {
+    const { history } = get();
+    // restore to the live (final) state and last move
+    let liveState = initialState();
+    for (const entry of history) {
+      liveState = applyMove(liveState, entry.move);
+    }
+    const lastM = history.length > 0 ? history[history.length - 1].move : null;
+    set({
+      reviewMode: false,
+      state: liveState,
+      lastMove: lastM ? { from: lastM.from, to: lastM.to } : null,
+    });
+  },
+
+  reviewStep: (delta) => {
+    const { reviewPly, reviewTotal, history } = get();
+    const newPly = Math.max(0, Math.min(reviewTotal, reviewPly + delta));
+    if (newPly === reviewPly) return;
+    // Rebuild state up to newPly
+    let s = initialState();
+    let capW: PieceType[] = [];
+    let capB: PieceType[] = [];
+    for (let i = 0; i < newPly; i++) {
+      const entry = history[i];
+      s = applyMove(s, entry.move);
+      if (entry.move.captured) {
+        if (entry.move.color === "w") capW.push(entry.move.captured);
+        else capB.push(entry.move.captured);
+      }
+    }
+    const lastM = newPly > 0 ? history[newPly - 1].move : null;
+    set({
+      reviewPly: newPly,
+      state: s,
+      lastMove: lastM ? { from: lastM.from, to: lastM.to } : null,
+      selected: null,
+      legalForSelected: [],
+      hintMove: null,
+      capturedByWhite: capW,
+      capturedByBlack: capB,
+    });
+  },
+
+  reviewTo: (ply) => {
+    const { reviewTotal } = get();
+    const clamped = Math.max(0, Math.min(reviewTotal, ply));
+    const { reviewPly } = get();
+    get().reviewStep(clamped - reviewPly);
   },
 }));
 

@@ -27,6 +27,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
     thinking,
     hintMove,
     history,
+    reviewMode,
   } = useChessGame();
 
   // Determine if the last move was a capture (for flash animation)
@@ -55,11 +56,13 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   );
 
   function handleSquareClick(sq: Square) {
-    const { thinking } = useChessGame.getState();
+    const { thinking, reviewMode: rm } = useChessGame.getState();
     if (thinking) return;
+    if (rm) return; // ignore clicks while reviewing
     if (mode.type === "ai" && state.turn !== mode.playerColor) return;
     selectSquare(sq);
   }
+  void reviewMode;
 
   return (
     <div

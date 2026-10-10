@@ -14,6 +14,7 @@ import { DailyPuzzleDialog } from "@/components/chess/DailyPuzzleDialog";
 import { AchievementsDialog } from "@/components/chess/AchievementsDialog";
 import { EvalBar } from "@/components/chess/EvalBar";
 import { OpeningTutorialDialog } from "@/components/chess/OpeningTutorialDialog";
+import { ReviewBar } from "@/components/chess/ReviewBar";
 import { GameMode, PieceColor } from "@/lib/chess/types";
 import { checkNewAchievements } from "@/lib/chess/achievements";
 import { motion, AnimatePresence } from "framer-motion";
@@ -284,6 +285,9 @@ export default function Home() {
                   Mostrar barra de evaluación
                 </Button>
               )}
+
+              {/* Review bar (repaso de partida) */}
+              <ReviewBar />
 
               {/* Move history toggle (mobile) */}
               <div className="lg:hidden">
