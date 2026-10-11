@@ -6,6 +6,7 @@ import {
   BoardThemeId,
   PieceSetId,
   PieceStyleId,
+  UiAccentId,
   loadSettings,
   saveSettings,
   BOARD_THEMES,
@@ -16,6 +17,7 @@ interface SettingsStore extends AppSettings {
   setBoardTheme: (theme: BoardThemeId) => void;
   setPieceSet: (set: PieceSetId) => void;
   setPieceStyle: (style: PieceStyleId) => void;
+  setUiAccent: (accent: UiAccentId) => void;
   toggleCoordinates: () => void;
   toggleSound: () => void;
   toggleHaptics: () => void;
@@ -23,6 +25,15 @@ interface SettingsStore extends AppSettings {
   toggleMusic: () => void;
   setMusicTrack: (track: MusicTrackId) => void;
   hydrate: () => void;
+}
+
+export function applyUiAccent(accent: UiAccentId): void {
+  if (typeof document === "undefined") return;
+  if (accent === "verde") {
+    document.documentElement.removeAttribute("data-ui");
+  } else {
+    document.documentElement.setAttribute("data-ui", accent);
+  }
 }
 
 export const useSettings = create<SettingsStore>((set, get) => ({
@@ -39,6 +50,11 @@ export const useSettings = create<SettingsStore>((set, get) => ({
   setPieceStyle: (style) => {
     set({ pieceStyle: style });
     persist(get());
+  },
+  setUiAccent: (uiAccent) => {
+    set({ uiAccent });
+    persist(get());
+    applyUiAccent(uiAccent);
   },
   toggleCoordinates: () => {
     set({ showCoordinates: !get().showCoordinates });
@@ -78,6 +94,7 @@ function loadSettingsSafe(): AppSettings {
       boardTheme: "classic",
       pieceSet: "merida",
       pieceStyle: "staunton",
+      uiAccent: "verde",
       showCoordinates: true,
       soundEnabled: true,
       hapticsEnabled: true,
@@ -87,6 +104,11 @@ function loadSettingsSafe(): AppSettings {
     };
   }
   return loadSettings();
+}
+
+// Apply the saved interface color as early as possible on the client.
+if (typeof window !== "undefined") {
+  applyUiAccent(loadSettingsSafe().uiAccent);
 }
 
 function persist(s: AppSettings): void {

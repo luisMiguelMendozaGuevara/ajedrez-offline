@@ -44,9 +44,10 @@
   --radius-xl: calc(var(--radius) + 2px);
 
   /* Vintage club palette: use as text-accent-green, bg-accent-gold/15, etc.
-     The -soft tints are for text over dark backgrounds. */
-  --color-accent-green: #35513f;
-  --color-accent-green-soft: #9dbfa4;
+     The -soft tints are for text over dark backgrounds.
+     The "green" accent follows the interface color preset (data-ui). */
+  --color-accent-green: var(--ui-green);
+  --color-accent-green-soft: var(--ui-green-soft);
   --color-accent-gold: #a98a4f;
   --color-accent-gold-soft: #d8ba7d;
   --color-accent-wine: #7a2e2b;
@@ -55,6 +56,27 @@
   --color-accent-slate-soft: #9db1c7;
   --color-accent-plum: #6b4f61;
   --color-accent-plum-soft: #bda6ba;
+}
+
+:root {
+  /* Interface color presets (verde default, azul, ciruela, bronce) */
+  --ui-green: #35513f;
+  --ui-green-soft: #9dbfa4;
+}
+
+:root[data-ui="azul"] {
+  --ui-green: #4a5d75;
+  --ui-green-soft: #9db1c7;
+}
+
+:root[data-ui="ciruela"] {
+  --ui-green: #6b4f61;
+  --ui-green-soft: #bda6ba;
+}
+
+:root[data-ui="bronce"] {
+  --ui-green: #8c6d3b;
+  --ui-green-soft: #d8ba7d;
 }
 
 :root {

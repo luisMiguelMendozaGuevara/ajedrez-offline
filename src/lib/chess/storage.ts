@@ -171,7 +171,17 @@ export function resetStats(): GameStats {
 
 // ---------- Settings ----------
 
-export type BoardThemeId = "classic" | "emerald" | "ocean" | "rose" | "midnight";
+export type BoardThemeId =
+  | "classic"
+  | "emerald"
+  | "ocean"
+  | "rose"
+  | "midnight"
+  | "azafran"
+  | "olivo"
+  | "granate"
+  | "cielo"
+  | "menta";
 
 export interface BoardTheme {
   id: BoardThemeId;
@@ -217,6 +227,41 @@ export const BOARD_THEMES: Record<BoardThemeId, BoardTheme> = {
     dark: "#4E463B",
     border: "linear-gradient(135deg, #2A241D, #171310)",
   },
+  azafran: {
+    id: "azafran",
+    name: "Azafrán",
+    light: "#F3E4BE",
+    dark: "#C9A227",
+    border: "linear-gradient(135deg, #4A3A1E, #2E2412)",
+  },
+  olivo: {
+    id: "olivo",
+    name: "Olivo",
+    light: "#E9E7CE",
+    dark: "#7C7C50",
+    border: "linear-gradient(135deg, #33361F, #1F2213)",
+  },
+  granate: {
+    id: "granate",
+    name: "Granate",
+    light: "#ECD9C8",
+    dark: "#7A2E2B",
+    border: "linear-gradient(135deg, #3E1E1C, #26100F)",
+  },
+  cielo: {
+    id: "cielo",
+    name: "Cielo",
+    light: "#E4EBF1",
+    dark: "#6E8CA8",
+    border: "linear-gradient(135deg, #26313D, #161E26)",
+  },
+  menta: {
+    id: "menta",
+    name: "Menta",
+    light: "#E4F0E4",
+    dark: "#6FA083",
+    border: "linear-gradient(135deg, #1F3A2C, #13241B)",
+  },
 };
 
 export type PieceStyleId =
@@ -257,7 +302,8 @@ export type PieceSetId =
   | "mpchess"
   | "totoy"
   | "papercut"
-  | "mono";
+  | "mono"
+  | "pixel8";
 
 export interface PieceSet {
   id: PieceSetId;
@@ -369,12 +415,19 @@ export const PIECE_SETS_META: PieceSet[] = [
     author: "Thibault Duplessis & C.M.L. Burnett",
     license: "GPLv2+",
   },
+  {
+    id: "pixel8",
+    name: "Pixel 8-bit",
+    author: "Ajedrez Offline (original)",
+    license: "Propio",
+  },
 ];
 
 export interface AppSettings {
   boardTheme: BoardThemeId;
   pieceSet: PieceSetId;
   pieceStyle: PieceStyleId;
+  uiAccent: UiAccentId;
   showCoordinates: boolean;
   soundEnabled: boolean;
   hapticsEnabled: boolean;
@@ -383,10 +436,20 @@ export interface AppSettings {
   musicTrack: MusicTrackId;
 }
 
+export type UiAccentId = "verde" | "azul" | "ciruela" | "bronce";
+
+export const UI_ACCENTS: { id: UiAccentId; label: string; dot: string }[] = [
+  { id: "verde", label: "Verde botella", dot: "#35513F" },
+  { id: "azul", label: "Azul pizarra", dot: "#4A5D75" },
+  { id: "ciruela", label: "Ciruela", dot: "#6B4F61" },
+  { id: "bronce", label: "Bronce", dot: "#8C6D3B" },
+];
+
 const DEFAULT_SETTINGS: AppSettings = {
   boardTheme: "classic",
   pieceSet: "merida",
   pieceStyle: "staunton",
+  uiAccent: "verde",
   showCoordinates: true,
   soundEnabled: true,
   hapticsEnabled: true,
@@ -397,6 +460,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 const PIECE_STYLE_IDS = PIECE_STYLES.map((p) => p.id);
 const PIECE_SET_IDS = PIECE_SETS_META.map((p) => p.id);
+const UI_ACCENT_IDS = UI_ACCENTS.map((a) => a.id);
 const MUSIC_TRACK_IDS: MusicTrackId[] = [
   "vintage",
   "retro",
@@ -419,6 +483,9 @@ export function loadSettings(): AppSettings {
     }
     if (!PIECE_SET_IDS.includes(merged.pieceSet)) {
       merged.pieceSet = DEFAULT_SETTINGS.pieceSet;
+    }
+    if (!UI_ACCENT_IDS.includes(merged.uiAccent)) {
+      merged.uiAccent = DEFAULT_SETTINGS.uiAccent;
     }
     if (!MUSIC_TRACK_IDS.includes(merged.musicTrack)) {
       merged.musicTrack = DEFAULT_SETTINGS.musicTrack;
