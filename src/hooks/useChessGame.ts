@@ -386,13 +386,16 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     // Sound effects (skip in replay)
     if (!replayMode) {
       if (status === "checkmate") {
-        playSound("gameEnd", settings.soundEnabled);
+        playSound("mate", settings.soundEnabled);
         playHaptic([30, 50, 30, 50, 80], settings.hapticsEnabled);
       } else if (status === "check") {
         playSound("check", settings.soundEnabled);
         playHaptic([20, 30, 20], settings.hapticsEnabled);
       } else if (move.isCastle) {
         playSound("castle", settings.soundEnabled);
+        playHaptic(15, settings.hapticsEnabled);
+      } else if (move.promotion) {
+        playSound("promote", settings.soundEnabled);
         playHaptic(15, settings.hapticsEnabled);
       } else if (move.captured) {
         playSound("capture", settings.soundEnabled);

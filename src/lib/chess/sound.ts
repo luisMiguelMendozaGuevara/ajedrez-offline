@@ -10,7 +10,9 @@ export type SoundName =
   | "move"
   | "capture"
   | "check"
+  | "mate"
   | "castle"
+  | "promote"
   | "select"
   | "gameEnd"
   | "invalid"
@@ -150,9 +152,32 @@ export function playSound(name: SoundName, enabled: boolean): void {
       break;
     }
     case "check": {
-      knock(215, 0, 0.15, 85);
-      tone(1046.5, 90, "triangle", 0.07, 0.09);
-      tone(1318.5, 150, "triangle", 0.08, 0.19);
+      // Two ascending bell-like alerts on top of the piece knock
+      knock(230, 0, 0.16, 85);
+      tone(1318.5, 240, "sine", 0.1, 0.08);
+      tone(1318.5 * 2.76, 120, "sine", 0.03, 0.08);
+      tone(1760, 280, "sine", 0.09, 0.26);
+      tone(1760 * 2.76, 140, "sine", 0.025, 0.26);
+      break;
+    }
+    case "mate": {
+      // Dramatic: heavy low impact, then a descending figure over a low drone
+      knock(120, 0, 0.22, 190);
+      noiseHit(160, 520, 0.12, 0, 0.6, "lowpass");
+      tone(659.25, 170, "triangle", 0.09, 0.14);
+      tone(523.25, 170, "triangle", 0.09, 0.31);
+      tone(392, 320, "triangle", 0.1, 0.48);
+      tone(130.81, 750, "sine", 0.07, 0.48);
+      break;
+    }
+    case "promote": {
+      // Sparkling ascending arpeggio after the piece lands
+      knock(200, 0, 0.13, 80);
+      tone(523.25, 90, "triangle", 0.08, 0.03);
+      tone(659.25, 90, "triangle", 0.08, 0.1);
+      tone(783.99, 90, "triangle", 0.08, 0.17);
+      tone(1046.5, 230, "triangle", 0.1, 0.24);
+      noiseHit(220, 6000, 0.03, 0.24, 0.7);
       break;
     }
     case "select": {

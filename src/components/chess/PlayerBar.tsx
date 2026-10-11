@@ -35,7 +35,7 @@ export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
       className={cn(
         "flex items-center justify-between gap-3 rounded-xl px-3 py-2 border transition-all",
         isActive
-          ? "border-accent-green/60 bg-accent-green/10 shadow-sm"
+          ? "border-accent-green/80 bg-accent-green/25 shadow-md ring-1 ring-accent-green/30"
           : "border-border/60 bg-card/60"
       )}
     >
