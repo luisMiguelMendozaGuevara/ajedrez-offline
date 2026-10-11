@@ -279,8 +279,13 @@ export default function ChessBoard3D({
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const modelsRef = useRef<Partial<Record<PieceType, THREE.BufferGeometry>>>({});
   const woodImgRef = useRef<HTMLImageElement | null>(null);
+  const boardRef = useRef<{
+    geometry: THREE.BufferGeometry;
+    material: THREE.Material;
+  } | null>(null);
   const rebuildRef = useRef(false);
   const [modelsToken, setModelsToken] = useState(0);
+  const [boardToken, setBoardToken] = useState(0);
 
   const boardThemeId = useSettings((s) => s.boardTheme);
   const theme = getBoardTheme(boardThemeId);
@@ -529,6 +534,46 @@ export default function ChessBoard3D({
     let cancelled = false;
     (async () => {
       try {
+        // Imported wooden board (carved box from the CC-BY set).
+        try {
+          const { GLTFLoader } = await import(
+            "three/examples/jsm/loaders/GLTFLoader.js"
+          );
+          const gltfLoader = new GLTFLoader();
+          const boardGltf = await gltfLoader.loadAsync(
+            "/models/chess3d/board.glb"
+          );
+          let boardMesh: THREE.Mesh | null = null;
+          boardGltf.scene.traverse((o) => {
+            const m = o as THREE.Mesh;
+            if (!boardMesh && m.isMesh) boardMesh = m;
+          });
+          if (boardMesh) {
+            const bm = boardMesh as THREE.Mesh;
+            bm.updateWorldMatrix(true, false);
+            const g = bm.geometry.clone().applyMatrix4(bm.matrixWorld);
+            g.computeBoundingBox();
+            const bb = g.boundingBox;
+            if (bb) {
+              const s = 8.75 / Math.max(0.001, bb.max.x - bb.min.x);
+              g.translate(
+                -(bb.min.x + bb.max.x) / 2,
+                -bb.max.y,
+                -(bb.min.z + bb.max.z) / 2
+              );
+              g.scale(s, s, s);
+              if (cancelled) return;
+              boardRef.current = {
+                geometry: g,
+                material: bm.material as THREE.Material,
+              };
+              setBoardToken((v) => v + 1);
+            }
+          }
+        } catch {
+          // Keep the procedural base if the board model cannot be loaded.
+        }
+
         const { FBXLoader } = await import(
           "three/examples/jsm/loaders/FBXLoader.js"
         );
@@ -620,7 +665,13 @@ export default function ChessBoard3D({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       if (img) {
-        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+        // tile the wood 2x2 for a finer grain across the board
+        const half = SIZE / 2;
+        for (let tx = 0; tx < 2; tx++) {
+          for (let ty = 0; ty < 2; ty++) {
+            ctx.drawImage(img, tx * half, ty * half, half, half);
+          }
+        }
       } else {
         ctx.fillStyle = theme.light;
         ctx.fillRect(0, 0, SIZE, SIZE);
@@ -630,8 +681,8 @@ export default function ChessBoard3D({
         for (let c = 0; c < 8; c++) {
           const isLight = (r + c) % 2 === 0;
           ctx.fillStyle = isLight
-            ? withAlpha(theme.light, 0.42)
-            : withAlpha(theme.dark, 0.86);
+            ? withAlpha(theme.light, 0.68)
+            : withAlpha(theme.dark, 0.85);
           ctx.fillRect(c * cell, r * cell, cell, cell);
         }
       }
@@ -675,20 +726,27 @@ export default function ChessBoard3D({
     top.position.y = 0.003;
     s.boardGroup.add(top);
 
-    // frame + sides: wood-tinted base
-    const base = new THREE.Mesh(
-      new THREE.BoxGeometry(8.75, 0.5, 8.75),
-      new THREE.MeshStandardMaterial({
-        map: baseTex,
-        color: new THREE.Color(theme.dark).multiplyScalar(0.72),
-        roughness: 0.8,
-      })
-    );
-    base.position.y = -0.25;
-    s.boardGroup.add(base);
+    // frame + sides: imported carved board when available, procedural base
+    // as fallback.
+    const imported = boardRef.current;
+    if (imported) {
+      const bmesh = new THREE.Mesh(imported.geometry, imported.material);
+      s.boardGroup.add(bmesh);
+    } else {
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(8.75, 0.5, 8.75),
+        new THREE.MeshStandardMaterial({
+          map: baseTex,
+          color: new THREE.Color(theme.dark).multiplyScalar(0.72),
+          roughness: 0.8,
+        })
+      );
+      base.position.y = -0.25;
+      s.boardGroup.add(base);
+    }
 
     s.dirty = true;
-  }, [theme]);
+  }, [theme, boardToken]);
 
   // --- pieces sync (create / move / capture / promotion / setup drop-in) ----
   useEffect(() => {
