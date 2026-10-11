@@ -116,7 +116,9 @@ export function GameOverDialog({ onNewGame, onRematch }: GameOverDialogProps) {
           >
             {icon}
           </motion.div>
-          <h2 className="mt-3 text-3xl font-display font-semibold">{title}</h2>
+          <DialogTitle className="mt-3 text-3xl font-display font-semibold">
+            {title}
+          </DialogTitle>
           <p className="mt-1 text-sm opacity-85 px-6 text-center">
             {subtitle}
           </p>
