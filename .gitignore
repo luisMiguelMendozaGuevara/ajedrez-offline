@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# android signing (keystore + passwords: local only)
+android/keystore.properties
+android/keystore/
+*.keystore
+*.jks
+
+# apk builds
+/release/
+*.apk
