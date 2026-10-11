@@ -55,6 +55,7 @@ export function ChessPiece({
       role="img"
       aria-label={`${isWhite ? "Blancas" : "Negras"} ${type}`}
       className={`block select-none ${className}`}
+      shapeRendering={pieceSet === "pixel8" ? "crispEdges" : undefined}
       style={{
         width: "1em",
         height: "1em",
