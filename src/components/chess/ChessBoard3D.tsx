@@ -925,10 +925,10 @@ export default function ChessBoard3D({
     <div
       className="relative mx-auto"
       style={{
-        width: "100vw",
-        maxWidth: "100vw",
-        marginLeft: "calc(50% - 50vw)",
-        height: "min(calc(100vw * 0.82), 560px)",
+        width: "min(100vw, 860px)",
+        maxWidth: "min(100vw, 860px)",
+        marginLeft: "calc(50% - min(50vw, 430px))",
+        height: "min(calc(100vw * 0.82), calc(100vh - 300px), 560px)",
       }}
     >
       <div ref={overlayRef} className="absolute inset-0 z-[1]">
