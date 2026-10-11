@@ -206,7 +206,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <Box className="h-3.5 w-3.5" />
               Vista del tablero
             </h3>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5">
               {BOARD_VIEWS.map((v) => {
                 const active = settings.boardView === v.id;
                 const t = getBoardTheme(settings.boardTheme);
@@ -222,7 +222,34 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     )}
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center">
-                      {v.id === "iso" ? (
+                      {v.id === "3d" ? (
+                        <span
+                          className="relative block h-5 w-5"
+                          style={{
+                            transformStyle: "preserve-3d",
+                            transform: "rotateX(50deg) rotateZ(45deg)",
+                          }}
+                        >
+                          <span
+                            className="absolute inset-0 rounded-[2px]"
+                            style={{
+                              background: t.light,
+                              transform: "translateZ(5px)",
+                            }}
+                          />
+                          <span
+                            className="absolute inset-0 rounded-[2px]"
+                            style={{ background: t.dark }}
+                          />
+                          <span
+                            className="absolute inset-0 rounded-[2px]"
+                            style={{
+                              background: t.border,
+                              transform: "translateZ(-5px)",
+                            }}
+                          />
+                        </span>
+                      ) : v.id === "iso" ? (
                         <span
                           className="block h-5 w-5 rounded-[3px] ring-1 ring-black/15"
                           style={{

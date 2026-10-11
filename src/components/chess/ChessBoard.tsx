@@ -7,6 +7,20 @@ import { Square } from "@/lib/chess/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { toast } from "sonner";
+
+const ChessBoard3D = dynamic(() => import("./ChessBoard3D"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="flex w-full items-center justify-center text-xs text-muted-foreground"
+      style={{ height: "min(calc((100vw - 8px) * 0.72), 470px)" }}
+    >
+      Cargando vista 3D…
+    </div>
+  ),
+});
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -52,6 +66,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   const showCoordinates = useSettings((s) => s.showCoordinates);
   const highlightLastMove = useSettings((s) => s.highlightLastMove);
   const boardView = useSettings((s) => s.boardView);
+  const setBoardView = useSettings((s) => s.setBoardView);
 
   // Board setup animation: plays when a new game starts
   const gameId = useChessGame((s) => s.gameId);
@@ -318,6 +333,22 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
       )}
     </AnimatePresence>
   );
+
+  // Real 3D view (experimental): three.js scene with its own piece design.
+  if (boardView === "3d") {
+    return (
+      <ChessBoard3D
+        blindfold={blindfold}
+        onSquareClick={handleSquareClick}
+        onUnsupported={() => {
+          toast.error(
+            "Tu dispositivo no soporta WebGL; volviendo a la vista isométrica"
+          );
+          setBoardView("iso");
+        }}
+      />
+    );
+  }
 
   // Isometric 2.5D view: tilted board with the pieces standing on it.
   if (iso) {

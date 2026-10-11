@@ -440,11 +440,12 @@ export interface AppSettings {
 
 export type UiAccentId = "verde" | "azul" | "ciruela" | "bronce";
 
-export type BoardViewId = "flat" | "iso";
+export type BoardViewId = "flat" | "iso" | "3d";
 
 export const BOARD_VIEWS: { id: BoardViewId; label: string; desc: string }[] = [
   { id: "flat", label: "Clásica", desc: "Tablero 2D de siempre" },
   { id: "iso", label: "Isométrica 3D", desc: "Tablero inclinado con piezas de pie" },
+  { id: "3d", label: "3D (experimental)", desc: "Tablero 3D con cámara y piezas clásicas" },
 ];
 
 export const UI_ACCENTS: { id: UiAccentId; label: string; dot: string }[] = [

@@ -353,19 +353,27 @@ export default function Home() {
                     </Button>
                   )}
 
-                  {/* Board view toggle (flat / isometric 3D) */}
+                  {/* Board view cycle (flat / isometric / 3D) */}
                   <Button
                     variant="ghost"
                     size="sm"
                     className="w-full h-8 text-[11px] text-muted-foreground"
                     onClick={() =>
-                      setBoardView(boardView === "iso" ? "flat" : "iso")
+                      setBoardView(
+                        boardView === "flat"
+                          ? "iso"
+                          : boardView === "iso"
+                            ? "3d"
+                            : "flat"
+                      )
                     }
                   >
                     <Box className="h-3.5 w-3.5 mr-1.5" />
-                    {boardView === "iso"
-                      ? "Usar vista clásica"
-                      : "Vista isométrica 3D"}
+                    {boardView === "flat"
+                      ? "Vista isométrica 3D"
+                      : boardView === "iso"
+                        ? "Vista 3D (experimental)"
+                        : "Volver a vista clásica"}
                   </Button>
 
                   {/* Review bar (repaso de partida) */}
