@@ -8,8 +8,9 @@ import { PieceColor, PieceType, Square } from "@/lib/chess/types";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-// Low-poly chess pieces by tunakron (CC0), loaded from public/models/chess3d.
-// One shared mesh per piece; we tint it in-app.
+// Classic chess piece models ("Complete Chess Set") loaded from
+// public/models/chess3d/fbx; we tint them in-app. Falls back to the built-in
+// lathe pieces when the models cannot be loaded.
 const MODEL_FILES: Record<PieceType, string> = {
   k: "king",
   q: "queen",
@@ -518,22 +519,22 @@ export default function ChessBoard3D({
     }
     state.raf = requestAnimationFrame(loop);
 
-    // Load the GLB piece models (CC0) and swap them in when ready.
+    // Load the piece models and swap them in when ready.
     let cancelled = false;
     (async () => {
       try {
-        const { GLTFLoader } = await import(
-          "three/examples/jsm/loaders/GLTFLoader.js"
+        const { FBXLoader } = await import(
+          "three/examples/jsm/loaders/FBXLoader.js"
         );
-        const loader = new GLTFLoader();
+        const loader = new FBXLoader();
         const raw: Partial<Record<PieceType, THREE.BufferGeometry>> = {};
         for (const [t, file] of Object.entries(MODEL_FILES) as [
           PieceType,
           string,
         ][]) {
-          const gltf = await loader.loadAsync(`/models/chess3d/${file}.glb`);
+          const obj = await loader.loadAsync(`/models/chess3d/fbx/${file}.fbx`);
           let mesh: THREE.Mesh | null = null;
-          gltf.scene.traverse((o) => {
+          obj.traverse((o) => {
             const m = o as THREE.Mesh;
             if (!mesh && m.isMesh) mesh = m;
           });
@@ -553,7 +554,7 @@ export default function ChessBoard3D({
         kingGeom.computeBoundingBox();
         const kb = kingGeom.boundingBox;
         if (!kb) return;
-        const factor = 1.05 / Math.max(0.001, kb.max.y - kb.min.y);
+        const factor = 1.14 / Math.max(0.001, kb.max.y - kb.min.y);
         for (const g of Object.values(raw)) {
           if (!g) continue;
           g.computeBoundingBox();
