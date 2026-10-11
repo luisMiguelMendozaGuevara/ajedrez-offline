@@ -484,7 +484,6 @@ export default function ChessBoard3D({
     function loop(now: number) {
       const s = three.current;
       if (!s || s.disposed) return;
-      s.raf = requestAnimationFrame(loop);
       let active = false;
 
       // camera azimuth animation (Girar)
