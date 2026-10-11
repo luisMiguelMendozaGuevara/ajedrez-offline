@@ -285,6 +285,7 @@ export default function ChessBoard3D({
   } | null>(null);
   const rebuildRef = useRef(false);
   const [modelsToken, setModelsToken] = useState(0);
+  const [modelsFailed, setModelsFailed] = useState(false);
   const [boardToken, setBoardToken] = useState(0);
 
   const boardThemeId = useSettings((s) => s.boardTheme);
@@ -605,7 +606,7 @@ export default function ChessBoard3D({
         kingGeom.computeBoundingBox();
         const kb = kingGeom.boundingBox;
         if (!kb) return;
-        const factor = 1.14 / Math.max(0.001, kb.max.y - kb.min.y);
+        const factor = 1.32 / Math.max(0.001, kb.max.y - kb.min.y);
         for (const g of Object.values(raw)) {
           if (!g) continue;
           g.computeBoundingBox();
@@ -622,10 +623,13 @@ export default function ChessBoard3D({
         if (raw.n) raw.n.rotateY(Math.PI);
         if (cancelled) return;
         modelsRef.current = raw;
-        rebuildRef.current = true;
+        // Start the staggered setup drop-in once the real models are ready,
+        // so the old fallback pieces are never shown during the animation.
+        state.setupUntil = performance.now() + 2400;
         setModelsToken((v) => v + 1);
       } catch {
         // Keep the built-in lathe pieces if the models cannot be loaded.
+        if (!cancelled) setModelsFailed(true);
       }
     })();
 
@@ -752,6 +756,9 @@ export default function ChessBoard3D({
   useEffect(() => {
     const s = three.current;
     if (!s) return;
+    // Wait for the piece models before creating anything, so the setup
+    // animation always uses the real pieces (fallback only if loading fails).
+    if (modelsToken === 0 && !modelsFailed) return;
     if (rebuildRef.current) {
       rebuildRef.current = false;
       s.pieces.forEach((entry) => s.piecesGroup.remove(entry.group));
@@ -911,7 +918,7 @@ export default function ChessBoard3D({
 
     s.pieces = next;
     s.dirty = true;
-  }, [board, lastMove, modelsToken]);
+  }, [board, lastMove, modelsToken, modelsFailed]);
 
   // new game -> replay the staggered setup drop-in
   useEffect(() => {
