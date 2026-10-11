@@ -20,7 +20,9 @@ import { GameMode, PieceColor } from "@/lib/chess/types";
 import { checkNewAchievements } from "@/lib/chess/achievements";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   History,
   Sun,
   Moon,
@@ -43,6 +45,9 @@ import {
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { ChessLogo } from "@/components/chess/ChessLogo";
+import { playSound } from "@/lib/chess/sound";
+import { useSettings } from "@/hooks/useSettings";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
@@ -55,6 +60,7 @@ export default function Home() {
   const [hasResume, setHasResume] = useState(false);
   const [blindfold, setBlindfold] = useState(false);
   const [showEval, setShowEval] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const prevStatusRef = useRef<string>("playing");
 
   const newGame = useChessGame((s) => s.newGame);
@@ -62,6 +68,7 @@ export default function Home() {
   const flipped = useChessGame((s) => s.flipped);
   const history = useChessGame((s) => s.history);
   const status = useChessGame((s) => s.status);
+  const reviewMode = useChessGame((s) => s.reviewMode);
 
   // Check for a saved game on mount
   useEffect(() => {
@@ -185,7 +192,10 @@ export default function Home() {
                   className="mt-4 w-full max-w-md"
                 >
                   <button
-                    onClick={handleResume}
+                    onClick={() => {
+                      playSound("click", useSettings.getState().soundEnabled);
+                      handleResume();
+                    }}
                     className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-accent-gold/60 bg-accent-gold/10 hover:bg-accent-gold/20 px-4 py-2.5 text-sm font-semibold text-accent-gold dark:text-accent-gold-soft transition-colors"
                   >
                     <Play className="h-4 w-4" />
@@ -237,96 +247,125 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="flex flex-col gap-3 py-3"
+              className="flex-1 flex flex-col py-3"
             >
-              <PlayerBar
-                color={topColor}
-                label={getLabel(topColor)}
-                icon={getIcon(topColor)}
-              />
-
-              {/* Evaluation bar (toggleable) */}
-              {showEval && (
-                <div className="flex items-center gap-2">
-                  <EvalBar />
-                  <button
-                    onClick={() => setShowEval(false)}
-                    className="text-[10px] text-muted-foreground hover:text-foreground shrink-0"
-                    title="Ocultar evaluación"
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-
-              <ChessBoard blindfold={blindfold} />
-
-              {blindfold && (
-                <div className="rounded-lg bg-accent-gold/10 border border-accent-gold/30 px-3 py-1.5 text-[11px] text-accent-gold dark:text-accent-gold-soft text-center font-medium flex items-center justify-center gap-1.5">
-                  <span>♟</span> Modo a la ciega activo · toca una pieza para verla
-                </div>
-              )}
-
-              <PlayerBar
-                color={bottomColor}
-                label={getLabel(bottomColor)}
-                icon={getIcon(bottomColor)}
-              />
-
-              <div className="mt-1">
-                <GameControls
-                  onNewGame={handleNewGame}
-                  onOpenSettings={() => setShowSettings(true)}
+              <div className="my-auto w-full flex flex-col gap-2.5">
+                <PlayerBar
+                  color={topColor}
+                  label={getLabel(topColor)}
+                  icon={getIcon(topColor)}
                 />
-              </div>
 
-              {/* Analysis toggle (if not already showing) */}
-              {!showEval && (
+                {/* Evaluation bar (toggleable) */}
+                {showEval && (
+                  <div className="flex items-center gap-2">
+                    <EvalBar />
+                    <button
+                      onClick={() => setShowEval(false)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground shrink-0"
+                      title="Ocultar evaluación"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                <div className="-mx-3">
+                  <ChessBoard blindfold={blindfold} />
+                </div>
+
+                {blindfold && (
+                  <div className="rounded-lg bg-accent-gold/10 border border-accent-gold/30 px-3 py-1.5 text-[11px] text-accent-gold dark:text-accent-gold-soft text-center font-medium flex items-center justify-center gap-1.5">
+                    <span>♟</span> Modo a la ciega activo · toca una pieza
+                    para verla
+                  </div>
+                )}
+
+                <PlayerBar
+                  color={bottomColor}
+                  label={getLabel(bottomColor)}
+                  icon={getIcon(bottomColor)}
+                />
+
+                {/* Review bar: siempre visible mientras el repaso está activo */}
+                {reviewMode && <ReviewBar />}
+
+                {/* Options toggle (mobile) */}
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full h-8 text-[11px] text-muted-foreground"
-                  onClick={() => setShowEval(true)}
+                  variant="outline"
+                  className="lg:hidden h-9 text-xs"
+                  onClick={() => setShowOptions((v) => !v)}
                 >
-                  <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                  Mostrar barra de evaluación
+                  {showOptions ? (
+                    <ChevronUp className="h-3.5 w-3.5 mr-1.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {showOptions ? "Ocultar opciones" : "Opciones"}
                 </Button>
-              )}
 
-              {/* Review bar (repaso de partida) */}
-              <ReviewBar />
+                {/* Options: collapsible on mobile, always visible on desktop */}
+                <div
+                  className={cn(
+                    "flex-col gap-2.5",
+                    showOptions ? "flex" : "hidden",
+                    "lg:flex"
+                  )}
+                >
+                  <GameControls
+                    onNewGame={handleNewGame}
+                    onOpenSettings={() => setShowSettings(true)}
+                  />
 
-              {/* Move history toggle (mobile) */}
-              <div className="lg:hidden">
-                <Sheet open={showHistory} onOpenChange={setShowHistory}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full h-10">
-                      <History className="h-4 w-4 mr-2" />
-                      Ver historial
-                      {history.length > 0 && (
-                        <span className="ml-2 rounded-full bg-accent-green/15 text-accent-green dark:text-accent-green-soft px-2 py-0.5 text-[10px] font-semibold">
-                          {Math.ceil(history.length / 2)}
-                        </span>
-                      )}
+                  {/* Analysis toggle (if not already showing) */}
+                  {!showEval && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-8 text-[11px] text-muted-foreground"
+                      onClick={() => setShowEval(true)}
+                    >
+                      <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                      Mostrar barra de evaluación
                     </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[50vh] p-0">
-                    <SheetHeader className="px-4 pt-4 pb-2 border-b">
-                      <SheetTitle className="flex items-center gap-2">
-                        <History className="h-4 w-4" />
-                        Historial de jugadas
-                      </SheetTitle>
-                    </SheetHeader>
-                    <div className="h-full pb-4">
-                      <MoveHistory />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
+                  )}
 
-              {/* Move history (desktop) */}
-              <div className="hidden lg:block rounded-xl border border-border/60 bg-card/60 overflow-hidden">
-                <MoveHistory />
+                  {/* Review bar (repaso de partida) */}
+                  {!reviewMode && <ReviewBar />}
+
+                  {/* Move history toggle (mobile) */}
+                  <div className="lg:hidden">
+                    <Sheet open={showHistory} onOpenChange={setShowHistory}>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" className="w-full h-10">
+                          <History className="h-4 w-4 mr-2" />
+                          Ver historial
+                          {history.length > 0 && (
+                            <span className="ml-2 rounded-full bg-accent-green/15 text-accent-green dark:text-accent-green-soft px-2 py-0.5 text-[10px] font-semibold">
+                              {Math.ceil(history.length / 2)}
+                            </span>
+                          )}
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="bottom" className="h-[50vh] p-0">
+                        <SheetHeader className="px-4 pt-4 pb-2 border-b">
+                          <SheetTitle className="flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Historial de jugadas
+                          </SheetTitle>
+                        </SheetHeader>
+                        <div className="h-full pb-4">
+                          <MoveHistory />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </div>
+
+                  {/* Move history (desktop) */}
+                  <div className="hidden lg:block rounded-xl border border-border/60 bg-card/60 overflow-hidden">
+                    <MoveHistory />
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -482,7 +521,10 @@ function QuickCard({
           : "bg-gradient-to-br from-[#7A5A6E] to-[#4E3846]";
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        playSound("click", useSettings.getState().soundEnabled);
+        onClick();
+      }}
       className={
         "relative flex flex-col items-center gap-1.5 rounded-xl border-2 transition-all " +
         (compact ? "p-2.5 " : "flex-row items-center gap-2.5 p-3 ") +

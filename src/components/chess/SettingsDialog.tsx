@@ -29,6 +29,7 @@ import {
   Vibrate,
   Type,
   Highlighter,
+  FlipHorizontal,
   Trash2,
   Trophy,
   BarChart3,
@@ -400,6 +401,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               desc="Marca la jugada reciente"
               value={settings.highlightLastMove}
               onToggle={settings.toggleHighlightLastMove}
+            />
+            <ToggleRow
+              icon={<FlipHorizontal className="h-4 w-4 text-accent-green dark:text-accent-green-soft" />}
+              label="Auto girar (2 jugadores)"
+              desc="Gira el tablero para el jugador en turno"
+              value={settings.autoFlipMultiplayer}
+              onToggle={settings.toggleAutoFlipMultiplayer}
             />
           </section>
         </div>

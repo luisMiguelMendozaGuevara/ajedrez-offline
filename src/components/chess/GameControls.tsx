@@ -52,12 +52,11 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
     status === "draw" ||
     status === "resigned";
   const canHint =
-    mode.type === "ai" &&
-    state.turn === mode.playerColor &&
     !gameEnded &&
     !thinking &&
     !hintMove &&
-    !replayMode;
+    !replayMode &&
+    (mode.type !== "ai" || state.turn === mode.playerColor);
   const canExport = history.length > 0;
 
   const handleExport = async () => {

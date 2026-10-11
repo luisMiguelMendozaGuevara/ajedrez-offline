@@ -432,6 +432,7 @@ export interface AppSettings {
   soundEnabled: boolean;
   hapticsEnabled: boolean;
   highlightLastMove: boolean;
+  autoFlipMultiplayer: boolean;
   musicEnabled: boolean;
   musicTrack: MusicTrackId;
 }
@@ -454,6 +455,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
   hapticsEnabled: true,
   highlightLastMove: true,
+  autoFlipMultiplayer: false,
   musicEnabled: true,
   musicTrack: "vintage",
 };
@@ -492,6 +494,9 @@ export function loadSettings(): AppSettings {
     }
     if (typeof merged.musicEnabled !== "boolean") {
       merged.musicEnabled = DEFAULT_SETTINGS.musicEnabled;
+    }
+    if (typeof merged.autoFlipMultiplayer !== "boolean") {
+      merged.autoFlipMultiplayer = DEFAULT_SETTINGS.autoFlipMultiplayer;
     }
     return merged;
   } catch {

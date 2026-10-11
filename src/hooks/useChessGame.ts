@@ -70,6 +70,8 @@ interface ChessStore {
   reviewMode: boolean; // currently reviewing a played game
   reviewPly: number; // number of plies shown (0 = initial position)
   reviewTotal: number; // total plies available to review
+  // Setup animation: increments on every new game
+  gameId: number;
 
   // actions
   newGame: (mode: GameMode) => void;
@@ -125,6 +127,7 @@ export const useChessGame = create<ChessStore>((set, get) => ({
   capturedByWhite: [],
   capturedByBlack: [],
   flipped: false,
+  gameId: 0,
   hintMove: null,
   statsRecorded: false,
   whiteTime: 0,
@@ -162,10 +165,15 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       reviewMode: false,
       reviewPly: 0,
       reviewTotal: 0,
+      gameId: get().gameId + 1,
     });
+    // Board setup sound; the AI's first move waits so the setup animation
+    // and the placement sound play out without clashing.
+    const soundOn = useSettings.getState().soundEnabled;
+    playSound("start", soundOn);
     // If AI plays white, make first move
     if (mode.type === "ai" && mode.playerColor === "b") {
-      setTimeout(() => get().aiMove(), 300);
+      setTimeout(() => get().aiMove(), 1900);
     }
   },
 
@@ -293,12 +301,13 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     )
       return;
     if (thinking) return;
-    if (mode.type !== "ai") return;
-    if (state.turn !== mode.playerColor) return;
+    // Hints work in AI games (player's turn) and in two-player games
+    if (mode.type === "ai" && state.turn !== mode.playerColor) return;
     // Use the same engine (medium difficulty) to get a suggestion
     const best = findBestMove(state, "medium");
     if (best) {
       set({ hintMove: { from: best.from, to: best.to } });
+      playSound("hint", useSettings.getState().soundEnabled);
       // auto-clear after a few seconds
       setTimeout(() => {
         if (get().hintMove) set({ hintMove: null });
@@ -319,11 +328,15 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       whiteTime,
       blackTime,
       lastTickAt,
+      flipped,
       replayMode,
     } = get();
     const san = toSan(state, move);
     const newState = applyMove(state, move);
     const settings = useSettings.getState();
+
+    // Auto-flip in two-player mode: keep the player to move at the bottom
+    const autoFlip = mode.type === "human" && settings.autoFlipMultiplayer;
 
     // Update clock: subtract elapsed time from mover, add increment
     let newWhiteTime = whiteTime;
@@ -403,6 +416,7 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       whiteTime: newWhiteTime,
       blackTime: newBlackTime,
       lastTickAt: Date.now(),
+      flipped: autoFlip ? newState.turn === "b" : flipped,
     });
 
     // Record stats on game end (once)
@@ -476,7 +490,7 @@ export const useChessGame = create<ChessStore>((set, get) => ({
   cancelPromotion: () => set({ promotionPending: null }),
 
   undo: () => {
-    const { history, mode } = get();
+    const { history, mode, flipped } = get();
     if (history.length === 0) return;
     // In AI mode, undo two plies (player + AI) so it's player's turn again
     const steps = mode.type === "ai" && history.length >= 2 ? 2 : 1;
@@ -526,6 +540,10 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       thinking: false,
       promotionPending: null,
       hintMove: null,
+      flipped:
+        mode.type === "human" && settings.autoFlipMultiplayer
+          ? restoredState.turn === "b"
+          : flipped,
     });
     // Persist the undone state
     if (newHistory.length === 0) {

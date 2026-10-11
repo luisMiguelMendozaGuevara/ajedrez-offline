@@ -6,8 +6,20 @@ import { ChessPiece } from "./ChessPiece";
 import { Square } from "@/lib/chess/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+// Stagger delay for the board setup animation: pawns first, then the back
+// ranks (mirrors the board setup sound).
+function setupDelay(r: number, c: number): number {
+  let idx: number;
+  if (r === 6) idx = c;
+  else if (r === 1) idx = 8 + c;
+  else if (r === 7) idx = 16 + c;
+  else idx = 24 + c;
+  return 0.05 + idx * 0.045;
+}
 
 interface ChessBoardProps {
   size?: number;
@@ -40,6 +52,22 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   const showCoordinates = useSettings((s) => s.showCoordinates);
   const highlightLastMove = useSettings((s) => s.highlightLastMove);
 
+  // Board setup animation: plays when a new game starts
+  const gameId = useChessGame((s) => s.gameId);
+  const [setupAnim, setSetupAnim] = useState<boolean>(
+    () => useChessGame.getState().gameId > 0
+  );
+  const [prevGameId, setPrevGameId] = useState(gameId);
+  if (gameId !== prevGameId) {
+    setPrevGameId(gameId);
+    setSetupAnim(gameId > 0);
+  }
+  useEffect(() => {
+    if (!setupAnim) return;
+    const t = setTimeout(() => setSetupAnim(false), 2400);
+    return () => clearTimeout(t);
+  }, [setupAnim]);
+
   const theme = getBoardTheme(boardThemeId);
   const checkSquare = isKingInCheckSquare(state, state.turn);
 
@@ -71,8 +99,8 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
       className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl"
       style={{
         background: theme.border,
-        padding: "clamp(6px, 1.5vw, 10px)",
-        maxWidth: "min(92vw, 540px, 62vh)",
+        padding: "clamp(5px, 1.3vw, 10px)",
+        maxWidth: "min(100vw - 8px, 540px, 62vh)",
         aspectRatio: "1 / 1",
         boxShadow:
           "0 18px 40px -18px rgba(28,21,15,0.75), inset 0 0 0 1px rgba(198,161,91,0.45)",
@@ -133,7 +161,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                   )}
                   style={{
                     backgroundColor: isLight ? theme.light : theme.dark,
-                    fontSize: size ? `${size * 0.082}px` : "clamp(1.7rem, 7.8vw, 2.95rem)",
+                    fontSize: size ? `${size * 0.082}px` : "clamp(1.8rem, 8.9vw, 3.1rem)",
                   }}
                   aria-label={`Casilla ${fileChar}${rankNum}`}
                 >
@@ -164,16 +192,26 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                       }}
                     />
                   )}
-                  {/* selected highlight */}
+                  {/* selected highlight + green ring around the piece */}
                   {isSelected && (
-                    <span
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        background: "rgba(227,166,61,0.72)",
-                        boxShadow:
-                          "inset 0 0 0 2px rgba(120,84,32,0.95), inset 0 0 12px rgba(255,214,130,0.55)",
-                      }}
-                    />
+                    <>
+                      <span
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: "rgba(227,166,61,0.72)",
+                          boxShadow:
+                            "inset 0 0 0 2px rgba(120,84,32,0.95), inset 0 0 12px rgba(255,214,130,0.55)",
+                        }}
+                      />
+                      <span
+                        className="absolute inset-[8%] rounded-full border-[3px] pointer-events-none z-20"
+                        style={{
+                          borderColor: "rgba(62,138,87,0.95)",
+                          boxShadow:
+                            "0 0 10px rgba(62,138,87,0.5), inset 0 0 6px rgba(62,138,87,0.35)",
+                        }}
+                      />
+                    </>
                   )}
                   {/* check highlight */}
                   {isCheck && (
@@ -207,16 +245,26 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                   {/* piece (hidden in blindfold mode unless selected) */}
                   {piece && (!blindfold || isSelected) && (
                     <motion.span
+                      key={gameId}
                       layoutId={`piece-${r}-${c}-${piece.type}-${piece.color}`}
                       className="relative z-10"
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     >
-                      <ChessPiece
-                        type={piece.type}
-                        color={piece.color}
-                        pieceSet={pieceSetId}
-                        pieceStyle={pieceStyleId}
-                      />
+                      <span
+                        className={cn("block", setupAnim && "piece-setup-in")}
+                        style={
+                          setupAnim
+                            ? { animationDelay: `${setupDelay(r, c)}s` }
+                            : undefined
+                        }
+                      >
+                        <ChessPiece
+                          type={piece.type}
+                          color={piece.color}
+                          pieceSet={pieceSetId}
+                          pieceStyle={pieceStyleId}
+                        />
+                      </span>
                     </motion.span>
                   )}
 

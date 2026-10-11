@@ -22,6 +22,7 @@ interface SettingsStore extends AppSettings {
   toggleSound: () => void;
   toggleHaptics: () => void;
   toggleHighlightLastMove: () => void;
+  toggleAutoFlipMultiplayer: () => void;
   toggleMusic: () => void;
   setMusicTrack: (track: MusicTrackId) => void;
   hydrate: () => void;
@@ -72,6 +73,10 @@ export const useSettings = create<SettingsStore>((set, get) => ({
     set({ highlightLastMove: !get().highlightLastMove });
     persist(get());
   },
+  toggleAutoFlipMultiplayer: () => {
+    set({ autoFlipMultiplayer: !get().autoFlipMultiplayer });
+    persist(get());
+  },
   toggleMusic: () => {
     const musicEnabled = !get().musicEnabled;
     set({ musicEnabled });
@@ -99,6 +104,7 @@ function loadSettingsSafe(): AppSettings {
       soundEnabled: true,
       hapticsEnabled: true,
       highlightLastMove: true,
+      autoFlipMultiplayer: false,
       musicEnabled: true,
       musicTrack: "vintage",
     };
