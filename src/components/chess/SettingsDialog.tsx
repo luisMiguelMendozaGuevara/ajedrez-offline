@@ -282,8 +282,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               })}
             </div>
             <p className="mt-2 text-[9px] text-muted-foreground leading-snug">
-              Vista 3D: set «Complete Chess Set» (uso personal) con respaldo de
-              piezas torneadas propias.
+              Vista 3D: piezas «Complete Chess Set» y textura de tablero «Chess
+              set» por brendan wood (CC-BY 4.0).
             </p>
           </section>
 

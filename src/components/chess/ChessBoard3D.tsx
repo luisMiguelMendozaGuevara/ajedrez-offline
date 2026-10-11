@@ -254,6 +254,11 @@ function easeOutCubic(k: number): number {
   return 1 - Math.pow(1 - k, 3);
 }
 
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 // Stagger used by the setup animation (mirrors the 2D board).
 function setupDelay(r: number, c: number): number {
   let idx: number;
@@ -273,6 +278,7 @@ export default function ChessBoard3D({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const modelsRef = useRef<Partial<Record<PieceType, THREE.BufferGeometry>>>({});
+  const woodImgRef = useRef<HTMLImageElement | null>(null);
   const rebuildRef = useRef(false);
   const [modelsToken, setModelsToken] = useState(0);
 
@@ -589,34 +595,98 @@ export default function ChessBoard3D({
     };
   }, []);
 
-  // --- board (tiles + base) rebuild on theme change -------------------------
+  // --- board (wood-textured top + base) rebuild on theme change -------------
   useEffect(() => {
     const s = three.current;
     if (!s) return;
     s.boardGroup.clear();
+
+    // Compose the board-top texture on a canvas: walnut wood + tinted squares.
+    const SIZE = 1024;
+    const canvas = document.createElement("canvas");
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const baseTex = new THREE.CanvasTexture(canvas);
+    baseTex.colorSpace = THREE.SRGBColorSpace;
+    baseTex.wrapS = THREE.RepeatWrapping;
+    baseTex.wrapT = THREE.RepeatWrapping;
+    baseTex.repeat.set(5, 1);
+    const texs = [tex, baseTex];
+
+    const paint = (img?: HTMLImageElement | null) => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      if (img) {
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+      } else {
+        ctx.fillStyle = theme.light;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+      }
+      const cell = SIZE / 8;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const isLight = (r + c) % 2 === 0;
+          ctx.fillStyle = isLight
+            ? withAlpha(theme.light, 0.42)
+            : withAlpha(theme.dark, 0.86);
+          ctx.fillRect(c * cell, r * cell, cell, cell);
+        }
+      }
+      // subtle grid lines
+      ctx.strokeStyle = "rgba(20,12,8,0.22)";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i <= 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * cell, 0);
+        ctx.lineTo(i * cell, SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * cell);
+        ctx.lineTo(SIZE, i * cell);
+        ctx.stroke();
+      }
+      for (const t of texs) t.needsUpdate = true;
+    };
+    paint(woodImgRef.current);
+    if (!woodImgRef.current) {
+      const img = new Image();
+      img.src = "/models/chess3d/wood/walnut.jpg";
+      img
+        .decode()
+        .then(() => {
+          if (s.disposed) return;
+          woodImgRef.current = img;
+          paint(img);
+          s.dirty = true;
+        })
+        .catch(() => {
+          // keep the tinted board if the texture cannot be loaded
+        });
+    }
+
+    // board top: one textured plane
+    const top = new THREE.Mesh(
+      new THREE.PlaneGeometry(8, 8).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 })
+    );
+    top.position.y = 0.003;
+    s.boardGroup.add(top);
+
+    // frame + sides: wood-tinted base
     const base = new THREE.Mesh(
       new THREE.BoxGeometry(8.75, 0.5, 8.75),
-      new THREE.MeshStandardMaterial({ color: theme.dark, roughness: 0.8 })
+      new THREE.MeshStandardMaterial({
+        map: baseTex,
+        color: new THREE.Color(theme.dark).multiplyScalar(0.72),
+        roughness: 0.8,
+      })
     );
     base.position.y = -0.25;
     s.boardGroup.add(base);
-    const tileGeom = new THREE.BoxGeometry(1, 0.1, 1);
-    const lightMat = new THREE.MeshStandardMaterial({
-      color: theme.light,
-      roughness: 0.9,
-    });
-    const darkMat = new THREE.MeshStandardMaterial({
-      color: theme.dark,
-      roughness: 0.9,
-    });
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const isLight = (r + c) % 2 === 0;
-        const tile = new THREE.Mesh(tileGeom, isLight ? lightMat : darkMat);
-        tile.position.set(c - 3.5, -0.05, r - 3.5);
-        s.boardGroup.add(tile);
-      }
-    }
+
     s.dirty = true;
   }, [theme]);
 
