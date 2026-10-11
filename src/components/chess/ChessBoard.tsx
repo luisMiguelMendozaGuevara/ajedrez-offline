@@ -41,20 +41,20 @@ interface ChessBoardProps {
 }
 
 export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
-  const {
-    state,
-    selected,
-    legalForSelected,
-    lastMove,
-    flipped,
-    selectSquare,
-    mode,
-    status,
-    thinking,
-    hintMove,
-    history,
-    reviewMode,
-  } = useChessGame();
+  // Individual selectors: the board must not re-render on unrelated store
+  // changes (clock ticks, thinking flags, etc.).
+  const state = useChessGame((s) => s.state);
+  const selected = useChessGame((s) => s.selected);
+  const legalForSelected = useChessGame((s) => s.legalForSelected);
+  const lastMove = useChessGame((s) => s.lastMove);
+  const flipped = useChessGame((s) => s.flipped);
+  const selectSquare = useChessGame((s) => s.selectSquare);
+  const mode = useChessGame((s) => s.mode);
+  const status = useChessGame((s) => s.status);
+  const thinking = useChessGame((s) => s.thinking);
+  const hintMove = useChessGame((s) => s.hintMove);
+  const history = useChessGame((s) => s.history);
+  const reviewMode = useChessGame((s) => s.reviewMode);
 
   // Determine if the last move was a capture (for flash animation)
   const lastEntry = history[history.length - 1];

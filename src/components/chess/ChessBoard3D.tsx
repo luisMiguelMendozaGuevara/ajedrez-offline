@@ -318,6 +318,9 @@ export default function ChessBoard3D({
     raf: number;
     setupUntil: number;
     disposed: boolean;
+    frameQueued: boolean;
+    requestFrame: () => void;
+    markDirty: () => void;
   } | null>(null);
 
   const syncOverlayRef = useRef<() => void>(() => {});
@@ -375,6 +378,9 @@ export default function ChessBoard3D({
       raf: 0,
       setupUntil: performance.now() + 2400,
       disposed: false,
+      frameQueued: false,
+      requestFrame: () => {},
+      markDirty: () => {},
     };
     three.current = state;
 
@@ -468,7 +474,7 @@ export default function ChessBoard3D({
       s.dist = fitDistance(s.az);
       updateCamera();
       syncOverlay();
-      s.dirty = true;
+      s.markDirty();
     }
 
     const ro = new ResizeObserver(resize);
@@ -528,8 +534,26 @@ export default function ChessBoard3D({
         s.renderer.render(s.scene, s.camera);
         s.dirty = false;
       }
+      // On-demand rendering: only keep the frame loop alive while something
+      // is actually animating.
+      s.frameQueued = false;
+      if (active) requestFrame();
     }
-    state.raf = requestAnimationFrame(loop);
+
+    function requestFrame() {
+      const s = three.current;
+      if (!s || s.disposed || s.frameQueued) return;
+      s.frameQueued = true;
+      s.raf = requestAnimationFrame(loop);
+    }
+    state.requestFrame = requestFrame;
+    state.markDirty = () => {
+      const s = three.current;
+      if (!s) return;
+      s.dirty = true;
+      requestFrame();
+    };
+    requestFrame();
 
     // Load the piece models and swap them in when ready.
     let cancelled = false;
@@ -715,7 +739,7 @@ export default function ChessBoard3D({
           if (s.disposed) return;
           woodImgRef.current = img;
           paint(img);
-          s.dirty = true;
+          s.markDirty();
         })
         .catch(() => {
           // keep the tinted board if the texture cannot be loaded
@@ -749,7 +773,7 @@ export default function ChessBoard3D({
       s.boardGroup.add(base);
     }
 
-    s.dirty = true;
+    s.markDirty();
   }, [theme, boardToken]);
 
   // --- pieces sync (create / move / capture / promotion / setup drop-in) ----
@@ -920,7 +944,7 @@ export default function ChessBoard3D({
     });
 
     s.pieces = next;
-    s.dirty = true;
+    s.markDirty();
   }, [board, lastMove, modelsToken, modelsFailed]);
 
   // new game -> replay the staggered setup drop-in
@@ -1018,7 +1042,7 @@ export default function ChessBoard3D({
       tileMesh(hintMove.to.row, hintMove.to.col, mat, plane, 0.016, "hint-pulse");
     }
 
-    s.dirty = true;
+    s.markDirty();
   }, [selected, legalForSelected, lastMove, hintMove, status]);
 
   // --- camera flip (Girar) --------------------------------------------------
@@ -1026,7 +1050,7 @@ export default function ChessBoard3D({
     const s = three.current;
     if (!s) return;
     s.azTarget = flipped ? Math.PI : 0;
-    s.dirty = true;
+    s.markDirty();
   }, [flipped]);
 
   // --- blindfold visibility -------------------------------------------------
@@ -1038,7 +1062,7 @@ export default function ChessBoard3D({
         selected && key === `${selected.row}-${selected.col}`;
       entry.group.visible = !blindfold || !!isSelected;
     });
-    s.dirty = true;
+    s.markDirty();
   }, [blindfold, selected, board]);
 
   const buttons: React.ReactNode[] = [];

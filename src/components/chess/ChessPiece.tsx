@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { PieceColor, PieceType } from "@/lib/chess/types";
 import { PieceSetId, PieceStyleId } from "@/lib/chess/storage";
-import { PIECE_SETS } from "./pieceSvg";
+import type { PieceSetArt } from "./pieceSvg";
 
 interface ChessPieceProps {
   type: PieceType;
@@ -37,6 +38,18 @@ function styleFilter(pieceStyle: PieceStyleId, isWhite: boolean): string {
   }
 }
 
+// The piece artwork (~400 KB of SVG for 19 sets) is only needed once a piece
+// actually renders, so it is loaded on demand and shared across instances.
+type PieceSets = Record<PieceSetId, PieceSetArt>;
+let pieceSetsPromise: Promise<PieceSets> | null = null;
+
+function loadPieceSets(): Promise<PieceSets> {
+  if (!pieceSetsPromise) {
+    pieceSetsPromise = import("./pieceSvg").then((m) => m.PIECE_SETS);
+  }
+  return pieceSetsPromise;
+}
+
 export function ChessPiece({
   type,
   color,
@@ -45,8 +58,22 @@ export function ChessPiece({
   pieceSet = "merida",
   pieceStyle = "staunton",
 }: ChessPieceProps) {
+  const [sets, setSets] = useState<PieceSets | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    loadPieceSets().then((loaded) => {
+      if (alive) setSets(loaded);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!sets) return null;
+
   const isWhite = color === "w";
-  const set = PIECE_SETS[pieceSet] ?? PIECE_SETS.merida;
+  const set = sets[pieceSet] ?? sets.merida;
   const art = set[color][type];
 
   return (

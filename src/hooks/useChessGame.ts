@@ -113,6 +113,65 @@ function computeStatus(state: GameState): {
   return { status: "playing", winner: null };
 }
 
+// --- AI worker: keeps the engine off the main thread so the UI stays fluid --
+let aiWorkerRef: Worker | null = null;
+let aiWorkerState: "none" | "ok" | "failed" = "none";
+let aiRequestSeq = 0;
+let aiPendingId = 0;
+let aiTimeout: ReturnType<typeof setTimeout> | null = null;
+let aiFallbackFn: (() => void) | null = null;
+
+function initAiWorker(
+  get: () => ChessStore,
+  set: (partial: Partial<ChessStore>) => void
+): void {
+  if (aiWorkerState !== "none") return;
+  try {
+    // Self-contained bundle (scripts/build-worker.mjs): works offline in the
+    // browser and inside the Android APK.
+    const worker = new Worker("/aiWorker.js");
+    worker.onmessage = (e: MessageEvent) => {
+      const data = e.data as { id: number; move: Move | null };
+      if (data.id !== aiPendingId) return; // stale result
+      aiPendingId = 0;
+      aiFallbackFn = null;
+      if (aiTimeout) {
+        clearTimeout(aiTimeout);
+        aiTimeout = null;
+      }
+      const cur = get();
+      if (!cur.thinking) return; // undone or new game meanwhile
+      if (
+        cur.status === "checkmate" ||
+        cur.status === "stalemate" ||
+        cur.status === "draw" ||
+        cur.status === "resigned"
+      )
+        return;
+      set({ thinking: false });
+      if (data.move) get().makeMove(data.move);
+    };
+    worker.onerror = () => {
+      aiWorkerState = "failed";
+      aiWorkerRef = null;
+      // Answer the pending request on the main thread instead of waiting.
+      const fallback = aiFallbackFn;
+      aiFallbackFn = null;
+      aiPendingId = 0;
+      if (aiTimeout) {
+        clearTimeout(aiTimeout);
+        aiTimeout = null;
+      }
+      fallback?.();
+    };
+    aiWorkerRef = worker;
+    aiWorkerState = "ok";
+  } catch {
+    aiWorkerState = "failed";
+    aiWorkerRef = null;
+  }
+}
+
 export const useChessGame = create<ChessStore>((set, get) => ({
   state: initialState(),
   mode: { type: "ai", difficulty: "medium", playerColor: "w" },
@@ -613,17 +672,40 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     if (state.turn === mode.playerColor) return;
 
     set({ thinking: true });
-    // Defer to allow UI to update; AI runs synchronously but quick
-    setTimeout(() => {
-      // Reset transposition table before each move to keep memory bounded
-      // and avoid stale entries from a different game context.
+    const difficulty = mode.difficulty ?? "medium";
+    const requestId = ++aiRequestSeq;
+    aiPendingId = requestId;
+
+    const finishOnMainThread = () => {
+      aiFallbackFn = null;
       resetTranspositionTable();
-      const move = findBestMove(state, mode.difficulty ?? "medium");
+      const move = findBestMove(state, difficulty);
+      const cur = get();
+      if (!cur.thinking) return;
       set({ thinking: false });
-      if (move) {
-        get().makeMove(move);
-      }
-    }, 50);
+      if (move) get().makeMove(move);
+    };
+
+    initAiWorker(get, set);
+    const worker = aiWorkerRef;
+    if (worker) {
+      aiFallbackFn = finishOnMainThread;
+      // Safety net: if the worker never answers, fall back to the main thread.
+      if (aiTimeout) clearTimeout(aiTimeout);
+      aiTimeout = setTimeout(() => {
+        if (aiPendingId !== requestId) return;
+        aiPendingId = 0;
+        finishOnMainThread();
+      }, 12000);
+      worker.postMessage({ id: requestId, state, difficulty });
+    } else {
+      // Worker unavailable: defer so the UI can paint, then compute inline.
+      setTimeout(() => {
+        if (aiPendingId !== requestId) return;
+        aiPendingId = 0;
+        finishOnMainThread();
+      }, 50);
+    }
   },
 
   tickClock: () => {
