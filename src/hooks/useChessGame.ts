@@ -224,6 +224,8 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       flipped: saved.flipped,
       hintMove: null,
       statsRecorded: false,
+      // Replay the board setup animation when resuming a saved game
+      gameId: get().gameId + 1,
     });
     // If it's AI's turn, trigger it
     const { mode, state } = get();
