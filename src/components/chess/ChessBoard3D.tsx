@@ -1067,7 +1067,8 @@ export default function ChessBoard3D({
         width: "min(100vw, 860px)",
         maxWidth: "min(100vw, 860px)",
         marginLeft: "calc(50% - min(50vw, 430px))",
-        height: "min(calc(100vw * 0.82), calc(100vh - 300px), 560px)",
+        height:
+          "min(calc(100vw * 0.82), max(calc(100vh - 300px), 260px), 560px)",
       }}
     >
       <div ref={overlayRef} className="absolute inset-0 z-[1]">

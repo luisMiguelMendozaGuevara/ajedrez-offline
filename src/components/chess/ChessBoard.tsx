@@ -156,8 +156,10 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                     fontSize: size
                       ? `${size * 0.082}px`
                       : iso
-                        ? "min(calc((100vw - 32px) / 12.16), 52.5px)"
-                        : "clamp(1.8rem, 8.9vw, 3.1rem)",
+                        ? "calc(min(97vw, 540px, 62vh) / 8 * 1.05)"
+                        : "calc(min(100vw - 8px, 540px, 62vh) / 8 * 0.9)",
+                    minWidth: 0,
+                    minHeight: 0,
                     transformStyle: iso ? "preserve-3d" : undefined,
                   }}
                   aria-label={`Casilla ${fileChar}${rankNum}`}
