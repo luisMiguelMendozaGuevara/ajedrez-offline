@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { useChessGame, isKingInCheckSquare } from "@/hooks/useChessGame";
 import { useSettings, getBoardTheme } from "@/hooks/useSettings";
 import { PieceColor, PieceType, Square } from "@/lib/chess/types";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+// Low-poly chess pieces by tunakron (CC0), loaded from public/models/chess3d.
+// One shared mesh per piece; we tint it in-app.
+const MODEL_FILES: Record<PieceType, string> = {
+  k: "king",
+  q: "queen",
+  r: "rook",
+  b: "bishop",
+  n: "knight",
+  p: "pawn",
+};
 
 interface ChessBoard3DProps {
   blindfold?: boolean;
@@ -260,6 +271,9 @@ export default function ChessBoard3D({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const modelsRef = useRef<Partial<Record<PieceType, THREE.BufferGeometry>>>({});
+  const rebuildRef = useRef(false);
+  const [modelsToken, setModelsToken] = useState(0);
 
   const boardThemeId = useSettings((s) => s.boardTheme);
   const theme = getBoardTheme(boardThemeId);
@@ -504,7 +518,67 @@ export default function ChessBoard3D({
     }
     state.raf = requestAnimationFrame(loop);
 
+    // Load the GLB piece models (CC0) and swap them in when ready.
+    let cancelled = false;
+    (async () => {
+      try {
+        const { GLTFLoader } = await import(
+          "three/examples/jsm/loaders/GLTFLoader.js"
+        );
+        const loader = new GLTFLoader();
+        const raw: Partial<Record<PieceType, THREE.BufferGeometry>> = {};
+        for (const [t, file] of Object.entries(MODEL_FILES) as [
+          PieceType,
+          string,
+        ][]) {
+          const gltf = await loader.loadAsync(`/models/chess3d/${file}.glb`);
+          let mesh: THREE.Mesh | null = null;
+          gltf.scene.traverse((o) => {
+            const m = o as THREE.Mesh;
+            if (!mesh && m.isMesh) mesh = m;
+          });
+          if (mesh) {
+            // Bake the node transforms (the source files carry their scale in
+            // the scene graph) and make sure the geometry has normals.
+            (mesh as THREE.Mesh).updateWorldMatrix(true, false);
+            const g = (mesh as THREE.Mesh).geometry
+              .clone()
+              .applyMatrix4((mesh as THREE.Mesh).matrixWorld);
+            if (!g.getAttribute("normal")) g.computeVertexNormals();
+            raw[t] = g;
+          }
+        }
+        const kingGeom = raw.k;
+        if (!kingGeom) return;
+        kingGeom.computeBoundingBox();
+        const kb = kingGeom.boundingBox;
+        if (!kb) return;
+        const factor = 1.05 / Math.max(0.001, kb.max.y - kb.min.y);
+        for (const g of Object.values(raw)) {
+          if (!g) continue;
+          g.computeBoundingBox();
+          const bb = g.boundingBox;
+          if (!bb) continue;
+          g.translate(
+            -(bb.min.x + bb.max.x) / 2,
+            -bb.min.y,
+            -(bb.min.z + bb.max.z) / 2
+          );
+          g.scale(factor, factor, factor);
+        }
+        // Orient the knight like the 2D artwork (facing the board's left).
+        if (raw.n) raw.n.rotateY(Math.PI);
+        if (cancelled) return;
+        modelsRef.current = raw;
+        rebuildRef.current = true;
+        setModelsToken((v) => v + 1);
+      } catch {
+        // Keep the built-in lathe pieces if the models cannot be loaded.
+      }
+    })();
+
     return () => {
+      cancelled = true;
       state.disposed = true;
       cancelAnimationFrame(state.raf);
       ro.disconnect();
@@ -549,6 +623,14 @@ export default function ChessBoard3D({
   useEffect(() => {
     const s = three.current;
     if (!s) return;
+    if (rebuildRef.current) {
+      rebuildRef.current = false;
+      s.pieces.forEach((entry) => s.piecesGroup.remove(entry.group));
+      s.pieces.clear();
+      // Model swap: pop the pieces in quickly instead of replaying the
+      // staggered game-start drop-in.
+      s.setupUntil = 0;
+    }
     const now = performance.now();
     const prev = s.pieces;
     const next = new Map<
@@ -644,7 +726,9 @@ export default function ChessBoard3D({
         }
         const group = new THREE.Group();
         const mat = piece.color === "w" ? MAT_LIGHT : MAT_DARK;
-        for (const geom of getGeoms()[piece.type]) {
+        const modelGeom = modelsRef.current[piece.type];
+        const geoms = modelGeom ? [modelGeom] : getGeoms()[piece.type];
+        for (const geom of geoms) {
           group.add(new THREE.Mesh(geom, mat));
         }
         const shadow = new THREE.Mesh(
@@ -698,7 +782,7 @@ export default function ChessBoard3D({
 
     s.pieces = next;
     s.dirty = true;
-  }, [board, lastMove]);
+  }, [board, lastMove, modelsToken]);
 
   // new game -> replay the staggered setup drop-in
   useEffect(() => {
@@ -839,10 +923,12 @@ export default function ChessBoard3D({
 
   return (
     <div
-      className="relative w-full mx-auto"
+      className="relative mx-auto"
       style={{
-        maxWidth: "min(100vw - 8px, 640px)",
-        height: "min(calc((100vw - 8px) * 0.72), 470px)",
+        width: "100vw",
+        maxWidth: "100vw",
+        marginLeft: "calc(50% - 50vw)",
+        height: "min(calc(100vw * 0.82), 560px)",
       }}
     >
       <div ref={overlayRef} className="absolute inset-0 z-[1]">

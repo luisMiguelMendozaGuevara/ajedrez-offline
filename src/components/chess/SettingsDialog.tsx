@@ -281,6 +281,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 );
               })}
             </div>
+            <p className="mt-2 text-[9px] text-muted-foreground leading-snug">
+              Vista 3D: piezas low-poly por tunakron (CC0).
+            </p>
           </section>
 
           <div className="h-px bg-border/60" />
