@@ -150,7 +150,7 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
             <Button
               variant="outline"
               size="sm"
-              className="col-span-1 h-10 flex-col gap-0.5 px-1 py-1.5 text-[10px] font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/50"
+              className="col-span-1 h-11 rounded-lg flex-col gap-0.5 px-1 py-1.5 text-[10px] font-medium text-accent-wine dark:text-accent-wine-soft hover:text-accent-wine hover:bg-accent-wine/10 border-accent-wine/30 hover:border-accent-wine/50"
               disabled={gameEnded || replayMode}
             >
               <span className="h-4 flex items-center justify-center">
@@ -171,7 +171,7 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
               <AlertDialogCancel>No, seguir jugando</AlertDialogCancel>
               <AlertDialogAction
                 onClick={resign}
-                className="bg-rose-600 hover:bg-rose-700 text-white"
+                className="bg-accent-wine hover:bg-accent-wine/90 text-[#F3EBD8]"
               >
                 Sí, rendirme
               </AlertDialogAction>
@@ -181,7 +181,7 @@ export function GameControls({ onNewGame, onOpenSettings }: GameControlsProps) {
       </div>
 
       {replayMode && (
-        <div className="col-span-6 rounded-lg bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 text-[11px] text-sky-600 dark:text-sky-400 text-center font-medium">
+        <div className="col-span-6 rounded-lg bg-accent-slate/10 border border-accent-slate/30 px-3 py-1.5 text-[11px] text-accent-slate dark:text-accent-slate-soft text-center font-medium">
           Modo repetición PGN · estadísticas y guardado desactivados
         </div>
       )}
@@ -213,11 +213,11 @@ function ControlButton({
       variant="outline"
       size="sm"
       className={cn(
-        "h-10 flex-col gap-0.5 px-1 py-1.5 text-[10px] font-medium",
+        "h-11 rounded-lg flex-col gap-0.5 px-1 py-1.5 text-[10px] font-medium border-border/70 bg-card hover:border-accent-gold/50 hover:bg-accent-gold/10 active:scale-[0.97] transition-all",
         variant === "primary" &&
-          "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600",
+          "bg-gradient-to-r from-[#35513F] to-[#22362B] hover:from-[#3E5C48] hover:to-[#2A4234] text-[#F3EBD8] hover:text-[#F3EBD8] border-transparent hover:border-transparent ring-1 ring-accent-gold/40 shadow-md",
         active &&
-          "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400",
+          "border-accent-gold bg-accent-gold/15 text-accent-gold dark:text-accent-gold-soft",
         disabled && "opacity-40",
         className
       )}

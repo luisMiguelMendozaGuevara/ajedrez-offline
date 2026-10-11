@@ -415,7 +415,7 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       const totalMoves = newState.fullmoveNumber;
       if (mode.type === "ai") {
         const outcome = humanOutcome(status, winner, mode.playerColor);
-        if (outcome) recordGame(outcome, totalMoves, true);
+        if (outcome) recordGame(outcome, totalMoves, true, mode.difficulty);
       } else {
         recordGame("draw", totalMoves, false);
       }
@@ -555,7 +555,7 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     playHaptic([30, 50, 80], settings.hapticsEnabled);
     // Record a loss for the human (AI mode)
     if (mode.type === "ai" && !statsRecorded) {
-      recordGame("loss", state.fullmoveNumber, true);
+      recordGame("loss", state.fullmoveNumber, true, mode.difficulty);
     }
     set({
       status: "resigned",
@@ -625,7 +625,8 @@ export const useChessGame = create<ChessStore>((set, get) => ({
           recordGame(
             humanOutcome("checkmate", "b", mode.playerColor) ?? "loss",
             state.fullmoveNumber,
-            true
+            true,
+            mode.difficulty
           );
           set({ statsRecorded: true });
         }
@@ -647,7 +648,8 @@ export const useChessGame = create<ChessStore>((set, get) => ({
           recordGame(
             humanOutcome("checkmate", "w", mode.playerColor) ?? "loss",
             state.fullmoveNumber,
-            true
+            true,
+            mode.difficulty
           );
           set({ statsRecorded: true });
         }

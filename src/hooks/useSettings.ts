@@ -4,19 +4,24 @@ import { create } from "zustand";
 import {
   AppSettings,
   BoardThemeId,
+  PieceSetId,
   PieceStyleId,
   loadSettings,
   saveSettings,
   BOARD_THEMES,
 } from "@/lib/chess/storage";
+import { MusicTrackId, applyMusicSettings } from "@/lib/chess/music";
 
 interface SettingsStore extends AppSettings {
   setBoardTheme: (theme: BoardThemeId) => void;
+  setPieceSet: (set: PieceSetId) => void;
   setPieceStyle: (style: PieceStyleId) => void;
   toggleCoordinates: () => void;
   toggleSound: () => void;
   toggleHaptics: () => void;
   toggleHighlightLastMove: () => void;
+  toggleMusic: () => void;
+  setMusicTrack: (track: MusicTrackId) => void;
   hydrate: () => void;
 }
 
@@ -25,6 +30,10 @@ export const useSettings = create<SettingsStore>((set, get) => ({
 
   setBoardTheme: (theme) => {
     set({ boardTheme: theme });
+    persist(get());
+  },
+  setPieceSet: (pieceSet) => {
+    set({ pieceSet });
     persist(get());
   },
   setPieceStyle: (style) => {
@@ -47,6 +56,17 @@ export const useSettings = create<SettingsStore>((set, get) => ({
     set({ highlightLastMove: !get().highlightLastMove });
     persist(get());
   },
+  toggleMusic: () => {
+    const musicEnabled = !get().musicEnabled;
+    set({ musicEnabled });
+    persist(get());
+    applyMusicSettings({ musicEnabled, musicTrack: get().musicTrack });
+  },
+  setMusicTrack: (musicTrack) => {
+    set({ musicTrack });
+    persist(get());
+    applyMusicSettings({ musicEnabled: get().musicEnabled, musicTrack });
+  },
   hydrate: () => {
     set(loadSettingsSafe());
   },
@@ -56,11 +76,14 @@ function loadSettingsSafe(): AppSettings {
   if (typeof window === "undefined") {
     return {
       boardTheme: "classic",
-      pieceStyle: "classic",
+      pieceSet: "merida",
+      pieceStyle: "staunton",
       showCoordinates: true,
       soundEnabled: true,
       hapticsEnabled: true,
       highlightLastMove: true,
+      musicEnabled: true,
+      musicTrack: "vintage",
     };
   }
   return loadSettings();

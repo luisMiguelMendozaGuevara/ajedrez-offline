@@ -97,7 +97,7 @@ export function MoveHistory() {
                           <motion.span
                             initial={
                               isLast(pair.whiteIdx!)
-                                ? { backgroundColor: "rgba(16,185,129,0.3)" }
+                                ? { backgroundColor: "rgba(169,138,79,0.35)" }
                                 : false
                             }
                             animate={{ backgroundColor: "rgba(0,0,0,0)" }}
@@ -123,7 +123,7 @@ export function MoveHistory() {
                           <motion.span
                             initial={
                               isLast(pair.blackIdx!)
-                                ? { backgroundColor: "rgba(16,185,129,0.3)" }
+                                ? { backgroundColor: "rgba(169,138,79,0.35)" }
                                 : false
                             }
                             animate={{ backgroundColor: "rgba(0,0,0,0)" }}

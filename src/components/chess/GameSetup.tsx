@@ -21,6 +21,7 @@ import {
   Upload,
   Eye,
   EyeOff,
+  Shuffle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useChessGame } from "@/hooks/useChessGame";
@@ -35,7 +36,7 @@ type SetupType = "ai" | "human";
 export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
   const [type, setType] = useState<SetupType>("ai");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-  const [playerColor, setPlayerColor] = useState<PieceColor>("w");
+  const [playerColor, setPlayerColor] = useState<PieceColor | "random">("w");
   const [timePresetId, setTimePresetId] = useState("none");
   const [blindfold, setBlindfold] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,10 +49,18 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
         ? undefined
         : { initialSeconds: preset.seconds, increment: preset.increment };
     if (type === "ai") {
-      onStart(
-        { type: "ai", difficulty, playerColor, timeControl },
-        blindfold
-      );
+      const color: PieceColor =
+        playerColor === "random"
+          ? Math.random() < 0.5
+            ? "w"
+            : "b"
+          : playerColor;
+      if (playerColor === "random") {
+        toast.success(
+          `Sorteo: juegas con ${color === "w" ? "blancas" : "negras"}`
+        );
+      }
+      onStart({ type: "ai", difficulty, playerColor: color, timeControl }, blindfold);
     } else {
       onStart({ type: "human", playerColor: "w", timeControl }, blindfold);
     }
@@ -95,7 +104,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
               icon={<Bot className="h-5 w-5" />}
               title="vs Máquina"
               desc="Juega contra la IA"
-              accent="emerald"
+              accent="green"
             />
             <ModeCard
               active={type === "human"}
@@ -103,7 +112,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
               icon={<Users className="h-5 w-5" />}
               title="2 Jugadores"
               desc="Multijugador offline"
-              accent="violet"
+              accent="plum"
             />
           </div>
         </div>
@@ -137,7 +146,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-3 px-1">
               Tu color
             </h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <ColorCard
                 active={playerColor === "w"}
                 onClick={() => setPlayerColor("w")}
@@ -152,6 +161,13 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
                 label="Negras"
                 desc="La IA empieza"
               />
+              <ColorCard
+                active={playerColor === "random"}
+                onClick={() => setPlayerColor("random")}
+                color="random"
+                label="Aleatorio"
+                desc="Se sortea al empezar"
+              />
             </div>
           </motion.div>
         )}
@@ -164,7 +180,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
             className="px-4 pb-4 overflow-hidden"
           >
             <div className="rounded-lg bg-muted/50 p-3 flex gap-3 items-start">
-              <Users className="h-5 w-5 text-violet-500 mt-0.5 shrink-0" />
+              <Users className="h-5 w-5 text-accent-plum dark:text-accent-plum-soft mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Dos jugadores se turnan en el mismo dispositivo. Las blancas
                 mueven primero. Usa el botón Girar para que cada jugador vea el
@@ -200,7 +216,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
             className={cn(
               "w-full flex items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all",
               blindfold
-                ? "border-amber-500 bg-amber-500/10"
+                ? "border-accent-gold bg-accent-gold/10"
                 : "border-border bg-card hover:border-border/80"
             )}
           >
@@ -209,7 +225,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-lg",
                   blindfold
-                    ? "bg-amber-500 text-white"
+                    ? "bg-accent-gold text-[#241C16]"
                     : "bg-muted text-muted-foreground"
                 )}
               >
@@ -229,7 +245,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
             <div
               className={cn(
                 "relative h-6 w-11 rounded-full transition-colors shrink-0",
-                blindfold ? "bg-amber-500" : "bg-muted-foreground/30"
+                blindfold ? "bg-accent-gold" : "bg-muted-foreground/30"
               )}
             >
               <motion.span
@@ -269,7 +285,7 @@ export function GameSetup({ onStart, onImportPgn }: GameSetupProps) {
           <Button
             onClick={handleStart}
             size="lg"
-            className="w-full h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-lg"
+            className="w-full h-12 bg-gradient-to-r from-[#35513F] to-[#22362B] hover:from-[#3E5C48] hover:to-[#2A4234] text-[#F3EBD8] font-semibold shadow-lg inset-shadow-[0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-accent-gold/40 transition-all hover:-translate-y-0.5 active:translate-y-0"
           >
             <Play className="h-5 w-5 mr-2" />
             Empezar partida
@@ -297,7 +313,7 @@ function ModeCard({
   icon: React.ReactNode;
   title: string;
   desc: string;
-  accent: "emerald" | "violet";
+  accent: "green" | "plum";
 }) {
   return (
     <button
@@ -305,9 +321,9 @@ function ModeCard({
       className={cn(
         "relative flex flex-col items-start gap-1.5 rounded-xl border-2 p-3.5 text-left transition-all",
         active
-          ? accent === "emerald"
-            ? "border-emerald-500 bg-emerald-500/10"
-            : "border-violet-500 bg-violet-500/10"
+          ? accent === "green"
+            ? "border-accent-green bg-accent-green/10"
+            : "border-accent-plum bg-accent-plum/10"
           : "border-border bg-card hover:border-border/80"
       )}
     >
@@ -315,9 +331,9 @@ function ModeCard({
         className={cn(
           "flex h-9 w-9 items-center justify-center rounded-lg",
           active
-            ? accent === "emerald"
-              ? "bg-emerald-500 text-white"
-              : "bg-violet-500 text-white"
+            ? accent === "green"
+              ? "bg-accent-green text-[#F3EBD8]"
+              : "bg-accent-plum text-[#F3EBD8]"
             : "bg-muted text-muted-foreground"
         )}
       >
@@ -348,7 +364,7 @@ function DifficultyPill({
       className={cn(
         "flex flex-col items-center gap-0.5 rounded-lg border-2 py-2 px-1 transition-all",
         active
-          ? "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400"
+          ? "border-accent-gold bg-accent-gold/15 text-accent-gold dark:text-accent-gold-soft"
           : "border-border bg-card text-muted-foreground hover:border-border"
       )}
     >
@@ -377,7 +393,7 @@ function TimePill({
       className={cn(
         "flex flex-col items-center gap-0.5 rounded-lg border-2 py-2 px-1 transition-all",
         active
-          ? "border-sky-500 bg-sky-500/15 text-sky-600 dark:text-sky-400"
+          ? "border-accent-slate bg-accent-slate/15 text-accent-slate dark:text-accent-slate-soft"
           : "border-border bg-card text-muted-foreground hover:border-border"
       )}
     >
@@ -398,7 +414,7 @@ function ColorCard({
 }: {
   active: boolean;
   onClick: () => void;
-  color: PieceColor;
+  color: PieceColor | "random";
   label: string;
   desc: string;
 }) {
@@ -406,9 +422,9 @@ function ColorCard({
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-xl border-2 p-3 transition-all",
+        "flex flex-col items-center gap-2 rounded-xl border-2 p-2.5 transition-all text-center",
         active
-          ? "border-emerald-500 bg-emerald-500/10"
+          ? "border-accent-green bg-accent-green/10"
           : "border-border bg-card hover:border-border"
       )}
     >
@@ -416,15 +432,23 @@ function ColorCard({
         className={cn(
           "flex h-8 w-8 items-center justify-center rounded-lg",
           color === "w"
-            ? "bg-gradient-to-br from-slate-100 to-slate-300 text-slate-700"
-            : "bg-gradient-to-br from-slate-700 to-slate-900 text-slate-100"
+            ? "bg-gradient-to-br from-[#F7F0DE] to-[#D8C7A8] text-[#2B2118]"
+            : color === "b"
+              ? "bg-gradient-to-br from-[#3A2E24] to-[#1C150F] text-[#EFE3CF]"
+              : "bg-gradient-to-br from-[#F7F0DE] via-[#B9A98C] to-[#3A2E24] text-[#2B2118]"
         )}
       >
-        <Crown className="h-4 w-4" />
+        {color === "random" ? (
+          <Shuffle className="h-4 w-4" />
+        ) : (
+          <Crown className="h-4 w-4" />
+        )}
       </div>
-      <div className="text-left">
-        <div className="text-sm font-semibold">{label}</div>
-        <div className="text-[10px] text-muted-foreground">{desc}</div>
+      <div>
+        <div className="text-xs font-semibold leading-tight">{label}</div>
+        <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+          {desc}
+        </div>
       </div>
     </button>
   );

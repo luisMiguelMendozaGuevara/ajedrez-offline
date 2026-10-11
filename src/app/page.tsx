@@ -158,7 +158,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen flex flex-col">
       <Header
         onBack={gameStarted ? handleNewGame : undefined}
         onOpenSettings={() => setShowSettings(true)}
@@ -186,7 +186,7 @@ export default function Home() {
                 >
                   <button
                     onClick={handleResume}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-600 dark:text-amber-400 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-accent-gold/60 bg-accent-gold/10 hover:bg-accent-gold/20 px-4 py-2.5 text-sm font-semibold text-accent-gold dark:text-accent-gold-soft transition-colors"
                   >
                     <Play className="h-4 w-4" />
                     Continuar partida guardada
@@ -200,28 +200,28 @@ export default function Home() {
                   onClick={() => setShowPuzzle(true)}
                   icon={<PuzzleIcon className="h-4 w-4" />}
                   title="Desafío"
-                  accent="sky"
+                  accent="slate"
                   compact
                 />
                 <QuickCard
                   onClick={() => setShowRush(true)}
                   icon={<Zap className="h-4 w-4" />}
                   title="Rush"
-                  accent="fuchsia"
+                  accent="wine"
                   compact
                 />
                 <QuickCard
                   onClick={() => setShowOpenings(true)}
                   icon={<GraduationCap className="h-4 w-4" />}
                   title="Aprender"
-                  accent="indigo"
+                  accent="plum"
                   compact
                 />
                 <QuickCard
                   onClick={() => setShowAchievements(true)}
                   icon={<Award className="h-4 w-4" />}
                   title="Logros"
-                  accent="amber"
+                  accent="gold"
                   compact
                 />
               </div>
@@ -262,7 +262,7 @@ export default function Home() {
               <ChessBoard blindfold={blindfold} />
 
               {blindfold && (
-                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-600 dark:text-amber-400 text-center font-medium flex items-center justify-center gap-1.5">
+                <div className="rounded-lg bg-accent-gold/10 border border-accent-gold/30 px-3 py-1.5 text-[11px] text-accent-gold dark:text-accent-gold-soft text-center font-medium flex items-center justify-center gap-1.5">
                   <span>♟</span> Modo a la ciega activo · toca una pieza para verla
                 </div>
               )}
@@ -304,7 +304,7 @@ export default function Home() {
                       <History className="h-4 w-4 mr-2" />
                       Ver historial
                       {history.length > 0 && (
-                        <span className="ml-2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
+                        <span className="ml-2 rounded-full bg-accent-green/15 text-accent-green dark:text-accent-green-soft px-2 py-0.5 text-[10px] font-semibold">
                           {Math.ceil(history.length / 2)}
                         </span>
                       )}
@@ -382,14 +382,16 @@ function Header({
               <ChevronLeft className="h-5 w-5" />
             </Button>
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#C6A15B] to-[#8C6D3B] text-[#241C16] shadow-md">
               <ChessLogo className="h-5 w-5" />
             </div>
           )}
           <div>
-            <h1 className="text-base font-bold leading-tight">Ajedrez Móvil</h1>
+            <h1 className="text-lg font-display font-semibold leading-tight tracking-wide">
+              Ajedrez Offline
+            </h1>
             <p className="text-[10px] text-muted-foreground leading-tight">
-              Gratis · vs Máquina & Offline
+              Gratis · Sin conexión
             </p>
           </div>
         </div>
@@ -459,25 +461,25 @@ function QuickCard({
   icon: React.ReactNode;
   title: string;
   desc?: string;
-  accent: "sky" | "amber" | "indigo" | "fuchsia";
+  accent: "slate" | "gold" | "plum" | "wine";
   compact?: boolean;
 }) {
   const borderClass =
-    accent === "sky"
-      ? "border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
-      : accent === "amber"
-        ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20"
-        : accent === "fuchsia"
-          ? "border-fuchsia-500/40 bg-fuchsia-500/10 hover:bg-fuchsia-500/20"
-          : "border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20";
+    accent === "slate"
+      ? "border-accent-slate/40 bg-accent-slate/10 hover:bg-accent-slate/20"
+      : accent === "gold"
+        ? "border-accent-gold/40 bg-accent-gold/10 hover:bg-accent-gold/20"
+        : accent === "wine"
+          ? "border-accent-wine/40 bg-accent-wine/10 hover:bg-accent-wine/20"
+          : "border-accent-plum/40 bg-accent-plum/10 hover:bg-accent-plum/20";
   const gradClass =
-    accent === "sky"
-      ? "bg-gradient-to-br from-sky-500 to-indigo-500"
-      : accent === "amber"
-        ? "bg-gradient-to-br from-amber-500 to-orange-500"
-        : accent === "fuchsia"
-          ? "bg-gradient-to-br from-fuchsia-500 to-pink-500"
-          : "bg-gradient-to-br from-indigo-500 to-purple-500";
+    accent === "slate"
+      ? "bg-gradient-to-br from-[#5A6E86] to-[#3A4A5E]"
+      : accent === "gold"
+        ? "bg-gradient-to-br from-[#C6A15B] to-[#8C6D3B]"
+        : accent === "wine"
+          ? "bg-gradient-to-br from-[#8C3A33] to-[#5E1F1C]"
+          : "bg-gradient-to-br from-[#7A5A6E] to-[#4E3846]";
   return (
     <button
       onClick={onClick}
@@ -517,16 +519,19 @@ function HeroBanner() {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", duration: 0.6 }}
-        className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl mb-3"
+        className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#35513F] to-[#22362B] text-[#EFE3CF] shadow-xl ring-1 ring-accent-gold/50 mb-3"
       >
         <ChessLogo className="h-9 w-9" />
       </motion.div>
-      <h2 className="text-2xl font-bold tracking-tight">
-        Ajedrez <span className="text-emerald-600 dark:text-emerald-400">Gratis</span>
+      <h2 className="text-3xl font-display font-semibold tracking-tight">
+        Ajedrez{" "}
+        <span className="text-accent-gold dark:text-accent-gold-soft">
+          Offline
+        </span>
       </h2>
       <p className="mt-1.5 text-sm text-muted-foreground max-w-xs mx-auto">
-        Juega contra la máquina con IA o reta a un amigo en modo multijugador
-        offline, directamente en tu móvil.
+        Juega contra la máquina con IA o reta a un amigo en la misma pantalla,
+        directamente en tu móvil. Sin conexión.
       </p>
     </div>
   );
@@ -534,9 +539,13 @@ function HeroBanner() {
 
 function Footer() {
   return (
-    <footer className="mt-auto border-t border-border/40 bg-background/60">
-      <div className="max-w-2xl mx-auto px-3 py-3 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
-        <span> ♟ Ajedrez Móvil — Hecho con Next.js</span>
+    <footer className="mt-auto border-t border-border/40 bg-card/40">
+      <div className="max-w-2xl mx-auto px-3 py-3 flex flex-col items-center gap-1 text-[11px] text-muted-foreground">
+        <span>♟ Ajedrez Offline — Hecho con Next.js</span>
+        <span className="text-[10px] text-muted-foreground/80 text-center px-4">
+          Piezas de ajedrez open source · créditos y licencias en Ajustes →
+          Diseño de piezas
+        </span>
       </div>
     </footer>
   );

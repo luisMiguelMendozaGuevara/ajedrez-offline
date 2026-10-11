@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { EB_Garamond, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -15,20 +15,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const garamond = EB_Garamond({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "Ajedrez Móvil - Gratis | vs Máquina y Multijugador Offline",
-  description: "Juega ajedrez gratis en tu móvil contra la máquina con IA o con un amigo en modo multijugador offline. Sin registro, funciona sin conexión.",
-  keywords: ["ajedrez", "chess", "gratis", "móvil", "android", "iOS", "IA", "multijugador", "offline", "juego"],
-  authors: [{ name: "Ajedrez Móvil" }],
+  title: "Ajedrez Offline - Gratis | vs Máquina y 2 Jugadores",
+  description: "Juega ajedrez gratis sin conexión: contra la máquina con IA o con un amigo en la misma pantalla. Sin registro, funciona offline.",
+  keywords: ["ajedrez", "chess", "gratis", "offline", "móvil", "android", "iOS", "IA", "2 jugadores", "juego"],
+  authors: [{ name: "Ajedrez Offline" }],
   openGraph: {
-    title: "Ajedrez Móvil Gratis",
-    description: "Ajedrez gratis para móvil: juega contra la máquina o con un amigo offline.",
+    title: "Ajedrez Offline",
+    description: "Ajedrez gratis sin conexión: juega contra la máquina o con un amigo en la misma pantalla.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ajedrez Móvil Gratis",
-    description: "Ajedrez gratis para móvil: juega contra la máquina o con un amigo offline.",
+    title: "Ajedrez Offline",
+    description: "Ajedrez gratis sin conexión: juega contra la máquina o con un amigo en la misma pantalla.",
+  },
+  icons: {
+    icon: "/logo.svg",
   },
 };
 
@@ -37,7 +46,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#10b981",
+  themeColor: "#F1E6D0",
 };
 
 export default function RootLayout({
@@ -48,11 +57,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${garamond.variable} antialiased bg-background text-foreground paper-grain`}
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >

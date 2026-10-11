@@ -1,5 +1,6 @@
 // Achievements system: unlockable badges based on game stats and events.
 import { GameStats, loadStats } from "./storage";
+import { DIFFICULTY_META } from "./types";
 
 export interface Achievement {
   id: string;
@@ -95,6 +96,50 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "Acaba 3 partidas en tablas",
     emoji: "🤝",
     isUnlocked: (s) => s.draws >= 3,
+  },
+  // ---- Machine-level achievements: beat the AI on each difficulty ----
+  {
+    id: "beat-beginner",
+    name: "Vence a la Máquina (Principiante)",
+    description: "Gana una partida contra la máquina en dificultad Principiante",
+    emoji: "🌱",
+    isUnlocked: (s) => (s.winsByDifficulty?.beginner ?? 0) >= 1,
+  },
+  {
+    id: "beat-easy",
+    name: "Vence a la Máquina (Fácil)",
+    description: "Gana una partida contra la máquina en dificultad Fácil",
+    emoji: "✨",
+    isUnlocked: (s) => (s.winsByDifficulty?.easy ?? 0) >= 1,
+  },
+  {
+    id: "beat-medium",
+    name: "Vence a la Máquina (Medio)",
+    description: "Gana una partida contra la máquina en dificultad Medio",
+    emoji: "🧠",
+    isUnlocked: (s) => (s.winsByDifficulty?.medium ?? 0) >= 1,
+  },
+  {
+    id: "beat-hard",
+    name: "Vence a la Máquina (Difícil)",
+    description: "Gana una partida contra la máquina en dificultad Difícil",
+    emoji: "⚔️",
+    isUnlocked: (s) => (s.winsByDifficulty?.hard ?? 0) >= 1,
+  },
+  {
+    id: "beat-expert",
+    name: "Vence a la Máquina (Experto)",
+    description: "Gana una partida contra la máquina en dificultad Experto",
+    emoji: "👑",
+    isUnlocked: (s) => (s.winsByDifficulty?.expert ?? 0) >= 1,
+  },
+  {
+    id: "machine-tamer",
+    name: "Domador de la Máquina",
+    description: "Vence a la máquina en los 5 niveles de dificultad",
+    emoji: "🤖",
+    isUnlocked: (s) =>
+      DIFFICULTY_META.every((d) => (s.winsByDifficulty?.[d.id] ?? 0) >= 1),
   },
 ];
 

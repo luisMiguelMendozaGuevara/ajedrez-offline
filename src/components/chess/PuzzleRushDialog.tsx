@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PuzzleBoard } from "./PuzzleBoard";
 import {
   VALID_PUZZLES,
-  buildStateFromSans,
+  buildPuzzleState,
   checkPuzzleMove,
   Puzzle,
 } from "@/lib/chess/puzzles";
@@ -48,7 +48,7 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
   const [phase, setPhase] = useState<RushPhase>("idle");
   const [puzzleQueue, setPuzzleQueue] = useState<Puzzle[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [state, setState] = useState<GameState>(() => buildStateFromSans(VALID_PUZZLES[0].setupMoves).state);
+  const [state, setState] = useState<GameState>(() => buildPuzzleState(VALID_PUZZLES[0]).state);
   const [solutionIndex, setSolutionIndex] = useState(0);
   const [selected, setSelected] = useState<Square | null>(null);
   const [legalForSelected, setLegalForSelected] = useState<Move[]>([]);
@@ -70,7 +70,7 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
   }, [open]);
 
   const loadPuzzle = useCallback((p: Puzzle) => {
-    const { state: s } = buildStateFromSans(p.setupMoves);
+    const { state: s } = buildPuzzleState(p);
     setState(s);
     setSolutionIndex(0);
     setSelected(null);
@@ -235,15 +235,15 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
     legalForSelected.map((m) => `${m.to.row}-${m.to.col}`)
   );
 
-  const timeColor = timeLeft <= 10 ? "text-rose-500" : timeLeft <= 20 ? "text-amber-500" : "text-emerald-500";
+  const timeColor = timeLeft <= 10 ? "text-accent-wine dark:text-accent-wine-soft" : timeLeft <= 20 ? "text-accent-gold dark:text-accent-gold-soft" : "text-accent-green dark:text-accent-green-soft";
   const pct = (timeLeft / RUSH_DURATION) * 100;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[420px] p-0 overflow-hidden max-h-[94vh] overflow-y-auto">
-        <DialogHeader className="px-4 pt-4 pb-3 border-b bg-gradient-to-r from-fuchsia-500/10 to-pink-500/10">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Zap className="h-4 w-4 text-fuchsia-500" />
+        <DialogHeader className="px-4 pt-4 pb-3 border-b bg-gradient-to-r from-accent-wine/10 to-accent-wine/5">
+          <DialogTitle className="flex items-center gap-2 text-base font-display">
+            <Zap className="h-4 w-4 text-accent-wine dark:text-accent-wine-soft" />
             Puzzle Rush
           </DialogTitle>
         </DialogHeader>
@@ -251,7 +251,7 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
         <div className="p-4 space-y-3">
           {phase === "idle" && (
             <div className="space-y-3">
-              <div className="rounded-xl bg-gradient-to-br from-fuchsia-500/10 to-pink-500/10 border border-fuchsia-500/30 p-4 text-center">
+              <div className="rounded-xl bg-gradient-to-br from-accent-wine/10 to-accent-wine/5 border border-accent-wine/30 p-4 text-center">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -268,7 +268,7 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
               </div>
               <Button
                 onClick={startRush}
-                className="w-full h-11 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-semibold"
+                className="w-full h-11 bg-gradient-to-r from-[#7A2E2B] to-[#5E1F1C] hover:from-[#8C3A33] hover:to-[#6E2622] text-[#F3EBD8] font-semibold"
               >
                 <Play className="h-4 w-4 mr-2" />
                 Empezar reto
@@ -288,19 +288,19 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
                     {timeLeft}s
                   </div>
                 </div>
-                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 uppercase">
+                <div className="rounded-lg bg-accent-green/10 border border-accent-green/30 p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-accent-green dark:text-accent-green-soft uppercase">
                     <Check className="h-3 w-3" /> Acertados
                   </div>
-                  <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                  <div className="text-xl font-bold text-accent-green dark:text-accent-green-soft tabular-nums">
                     {solved}
                   </div>
                 </div>
-                <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 p-2 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-rose-600 dark:text-rose-400 uppercase">
+                <div className="rounded-lg bg-accent-wine/10 border border-accent-wine/30 p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-accent-wine dark:text-accent-wine-soft uppercase">
                     <X className="h-3 w-3" /> Fallados
                   </div>
-                  <div className="text-xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+                  <div className="text-xl font-bold text-accent-wine dark:text-accent-wine-soft tabular-nums">
                     {failed}
                   </div>
                 </div>
@@ -312,10 +312,10 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
                   className={cn(
                     "h-full",
                     timeLeft <= 10
-                      ? "bg-rose-500"
+                      ? "bg-accent-wine"
                       : timeLeft <= 20
-                        ? "bg-amber-500"
-                        : "bg-emerald-500"
+                        ? "bg-accent-gold"
+                        : "bg-accent-green"
                   )}
                   animate={{ width: `${pct}%` }}
                   transition={{ duration: 0.3 }}
@@ -351,9 +351,9 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 p-5 text-center"
+                className="rounded-xl bg-gradient-to-br from-accent-gold/10 to-accent-gold/5 border border-accent-gold/30 p-5 text-center"
               >
-                <Trophy className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+                <Trophy className="h-10 w-10 text-accent-gold mx-auto mb-2" />
                 <h3 className="text-xl font-bold">
                   {result.solved >= TARGET_COUNT
                     ? "¡Perfecto!"
@@ -367,12 +367,12 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
               </motion.div>
 
               <div className="grid grid-cols-3 gap-2">
-                <ResultStat label="Acertados" value={result.solved} color="emerald" />
-                <ResultStat label="Fallados" value={result.failed} color="rose" />
+                <ResultStat label="Acertados" value={result.solved} color="green" />
+                <ResultStat label="Fallados" value={result.failed} color="wine" />
                 <ResultStat
                   label="Tiempo"
                   value={`${result.totalTime}s`}
-                  color="sky"
+                  color="slate"
                 />
               </div>
 
@@ -397,7 +397,7 @@ export function PuzzleRushDialog({ open, onOpenChange }: PuzzleRushDialogProps) 
                   Cerrar
                 </Button>
                 <Button
-                  className="flex-1 h-10 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white"
+                  className="flex-1 h-10 bg-gradient-to-r from-[#7A2E2B] to-[#5E1F1C] hover:from-[#8C3A33] hover:to-[#6E2622] text-[#F3EBD8]"
                   onClick={startRush}
                 >
                   <RotateCcw className="h-4 w-4 mr-1.5" />
@@ -419,14 +419,14 @@ function ResultStat({
 }: {
   label: string;
   value: number | string;
-  color: "emerald" | "rose" | "sky";
+  color: "green" | "wine" | "slate";
 }) {
   const colorClass =
-    color === "emerald"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : color === "rose"
-        ? "text-rose-600 dark:text-rose-400"
-        : "text-sky-600 dark:text-sky-400";
+    color === "green"
+      ? "text-accent-green dark:text-accent-green-soft"
+      : color === "wine"
+        ? "text-accent-wine dark:text-accent-wine-soft"
+        : "text-accent-slate dark:text-accent-slate-soft";
   return (
     <div className="rounded-lg border border-border/60 bg-card/50 p-2.5 text-center">
       <div className={cn("text-xl font-bold tabular-nums", colorClass)}>

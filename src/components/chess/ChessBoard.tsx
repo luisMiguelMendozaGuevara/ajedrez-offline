@@ -35,6 +35,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   const lastWasCapture = !!lastEntry?.move.captured;
 
   const boardThemeId = useSettings((s) => s.boardTheme);
+  const pieceSetId = useSettings((s) => s.pieceSet);
   const pieceStyleId = useSettings((s) => s.pieceStyle);
   const showCoordinates = useSettings((s) => s.showCoordinates);
   const highlightLastMove = useSettings((s) => s.highlightLastMove);
@@ -67,15 +68,22 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
 
   return (
     <div
-      className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/30"
+      className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl"
       style={{
         background: theme.border,
         padding: "clamp(6px, 1.5vw, 10px)",
         maxWidth: "min(92vw, 540px, 62vh)",
         aspectRatio: "1 / 1",
+        boxShadow:
+          "0 18px 40px -18px rgba(28,21,15,0.75), inset 0 0 0 1px rgba(198,161,91,0.45)",
       }}
     >
-      <div className="relative w-full h-full rounded-lg overflow-hidden shadow-inner ring-1 ring-black/10">
+      <div
+        className="relative w-full h-full rounded-md overflow-hidden"
+        style={{
+          boxShadow: "inset 0 0 0 1px rgba(198,161,91,0.6), inset 0 2px 8px rgba(28,21,15,0.35)",
+        }}
+      >
         <div
           className="grid w-full h-full"
           style={{
@@ -125,21 +133,21 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                   )}
                   style={{
                     backgroundColor: isLight ? theme.light : theme.dark,
-                    fontSize: size ? `${size * 0.075}px` : "clamp(1.5rem, 7vw, 2.6rem)",
+                    fontSize: size ? `${size * 0.082}px` : "clamp(1.7rem, 7.8vw, 2.95rem)",
                   }}
                   aria-label={`Casilla ${fileChar}${rankNum}`}
                 >
                   {/* last move highlight */}
                   {(isLastFrom || isLastTo) && (
-                    <span className="absolute inset-0 bg-amber-300/50 pointer-events-none" />
+                    <span className="absolute inset-0 bg-accent-gold/40 pointer-events-none" />
                   )}
                   {/* capture flash on the target square */}
                   {isLastTo && lastWasCapture && (
                     <motion.span
                       key={`cap-${history.length}`}
                       className="absolute inset-0 pointer-events-none rounded-sm"
-                      initial={{ boxShadow: "inset 0 0 0 9999px rgba(244,63,94,0.55)" }}
-                      animate={{ boxShadow: "inset 0 0 0 9999px rgba(244,63,94,0)" }}
+                      initial={{ boxShadow: "inset 0 0 0 9999px rgba(140,58,46,0.5)" }}
+                      animate={{ boxShadow: "inset 0 0 0 9999px rgba(140,58,46,0)" }}
                       transition={{ duration: 0.7 }}
                     />
                   )}
@@ -152,13 +160,20 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                       className="absolute inset-0 pointer-events-none"
                       style={{
                         background:
-                          "linear-gradient(135deg, rgba(56,189,248,0.55), rgba(14,165,233,0.45))",
+                          "linear-gradient(135deg, rgba(216,186,125,0.6), rgba(169,138,79,0.45))",
                       }}
                     />
                   )}
                   {/* selected highlight */}
                   {isSelected && (
-                    <span className="absolute inset-0 bg-emerald-400/60 pointer-events-none" />
+                    <span
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: "rgba(227,166,61,0.72)",
+                        boxShadow:
+                          "inset 0 0 0 2px rgba(120,84,32,0.95), inset 0 0 12px rgba(255,214,130,0.55)",
+                      }}
+                    />
                   )}
                   {/* check highlight */}
                   {isCheck && (
@@ -166,7 +181,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                       className="absolute inset-0 pointer-events-none animate-pulse"
                       style={{
                         background:
-                          "radial-gradient(circle, rgba(239,68,68,0.9) 0%, rgba(239,68,68,0.35) 55%, transparent 75%)",
+                          "radial-gradient(circle, rgba(160,64,56,0.85) 0%, rgba(160,64,56,0.32) 55%, transparent 75%)",
                       }}
                     />
                   )}
@@ -199,6 +214,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                       <ChessPiece
                         type={piece.type}
                         color={piece.color}
+                        pieceSet={pieceSetId}
                         pieceStyle={pieceStyleId}
                       />
                     </motion.span>
@@ -206,10 +222,10 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
 
                   {/* legal move indicator */}
                   {isLegalTarget && !isCaptureTarget && !piece && (
-                    <span className="absolute w-[28%] h-[28%] rounded-full bg-emerald-700/40 pointer-events-none z-20 shadow-inner" />
+                    <span className="absolute w-[28%] h-[28%] rounded-full bg-black/60 pointer-events-none z-20 shadow-inner" />
                   )}
                   {isLegalTarget && (isCaptureTarget || piece) && (
-                    <span className="absolute inset-[8%] rounded-full border-[3px] border-emerald-700/60 pointer-events-none z-20" />
+                    <span className="absolute inset-[8%] rounded-full border-[3px] border-black/70 pointer-events-none z-20" />
                   )}
                 </button>
               );
@@ -224,14 +240,14 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="absolute top-2 right-2 z-30 flex items-center gap-2 rounded-full bg-black/75 px-3 py-1.5 backdrop-blur shadow-lg"
+              className="absolute top-2 right-2 z-30 flex items-center gap-2 rounded-sm bg-[#241c16]/90 px-3 py-1.5 backdrop-blur shadow-lg ring-1 ring-accent-gold/40"
             >
               <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:-0.2s]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:-0.1s]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce [animation-delay:-0.2s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce [animation-delay:-0.1s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce" />
               </span>
-              <span className="text-[11px] font-medium text-white">
+              <span className="text-[11px] font-medium text-[#efe3cf]">
                 Pensando…
               </span>
             </motion.div>
@@ -240,7 +256,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
       </div>
 
       {status === "check" && (
-        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-amber-300 text-xs font-semibold drop-shadow">
+        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-accent-gold-soft text-xs font-semibold drop-shadow font-display">
           ¡Jaque!
         </div>
       )}

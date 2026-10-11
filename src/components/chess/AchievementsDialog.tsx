@@ -33,11 +33,11 @@ export function AchievementsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[400px] p-0 overflow-hidden max-h-[88vh] overflow-y-auto">
-        <DialogHeader className="px-4 pt-4 pb-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Award className="h-4 w-4 text-amber-500" />
+        <DialogHeader className="px-4 pt-4 pb-3 border-b bg-gradient-to-r from-accent-gold/10 to-accent-gold/5">
+          <DialogTitle className="flex items-center gap-2 text-base font-display">
+            <Award className="h-4 w-4 text-accent-gold dark:text-accent-gold-soft" />
             Logros
-            <span className="ml-auto text-xs font-normal text-muted-foreground">
+            <span className="ml-auto mr-6 text-xs font-normal text-muted-foreground">
               {unlockedCount}/{items.length}
             </span>
           </DialogTitle>
@@ -54,7 +54,7 @@ export function AchievementsDialog({
                 className={cn(
                   "relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all",
                   unlocked
-                    ? "border-amber-500/60 bg-amber-500/10"
+                    ? "border-accent-gold/60 bg-accent-gold/10"
                     : "border-border bg-card/40 opacity-60"
                 )}
               >
@@ -62,7 +62,7 @@ export function AchievementsDialog({
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full text-xl",
                     unlocked
-                      ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-md"
+                      ? "bg-gradient-to-br from-[#D8BA7D] to-[#A98A4F] shadow-md"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
@@ -75,7 +75,7 @@ export function AchievementsDialog({
                   {achievement.description}
                 </div>
                 {unlocked && unlockedAt && (
-                  <div className="text-[9px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
+                  <div className="text-[9px] text-accent-gold dark:text-accent-gold-soft font-medium mt-0.5">
                     {new Date(unlockedAt).toLocaleDateString("es", {
                       day: "numeric",
                       month: "short",

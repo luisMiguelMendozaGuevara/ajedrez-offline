@@ -35,28 +35,33 @@ export function EvalBar() {
       </span>
       <div
         className="relative flex-1 h-5 rounded-full overflow-hidden shadow-inner shrink-0"
-        style={{ background: "#1e1b2e" }}
+        style={{ background: "#241c16" }}
       >
         {/* Black portion (left) */}
         <motion.div
-          className="absolute top-0 bottom-0 left-0 bg-slate-800"
+          className="absolute top-0 bottom-0 left-0"
+          style={{ background: "#3A2E24" }}
           animate={{ width: `${(1 - whitePct) * 100}%` }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
         />
         {/* White portion (right) */}
         <motion.div
-          className="absolute top-0 bottom-0 right-0 bg-slate-100"
+          className="absolute top-0 bottom-0 right-0"
+          style={{ background: "#EFE3CF" }}
           animate={{ width: `${whitePct * 100}%` }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
         />
         {/* center marker */}
-        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-amber-400/70 z-10" />
+        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-accent-gold/80 z-10" />
       </div>
       <span
-        className="text-xs font-bold font-mono tabular-nums shrink-0 min-w-[2.5rem] text-right"
-        style={{
-          color: whiteAhead ? "#10b981" : pawns < 0 ? "#f43f5e" : undefined,
-        }}
+        className={`text-xs font-bold font-mono tabular-nums shrink-0 min-w-[2.5rem] text-right ${
+          whiteAhead
+            ? "text-accent-green dark:text-accent-green-soft"
+            : pawns < 0
+              ? "text-accent-wine dark:text-accent-wine-soft"
+              : ""
+        }`}
       >
         {display}
       </span>

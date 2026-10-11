@@ -8,7 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useChessGame } from "@/hooks/useChessGame";
+import { useSettings } from "@/hooks/useSettings";
 import { GameStatus, PieceColor, PieceType, PIECE_VALUES, PIECE_NAMES } from "@/lib/chess/types";
+import { ChessPiece } from "./ChessPiece";
 import { motion } from "framer-motion";
 import { Trophy, Handshake, Flag, Crown, Clock, Target, Swords, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,7 +41,7 @@ export function GameOverDialog({ onNewGame, onRematch }: GameOverDialogProps) {
   let title = "";
   let subtitle = "";
   let icon: React.ReactNode = null;
-  let accent = "emerald";
+  let accent = "green";
 
   if (status === "checkmate") {
     const youWon = mode.type === "ai" ? winner === mode.playerColor : false;
@@ -51,17 +53,17 @@ export function GameOverDialog({ onNewGame, onRematch }: GameOverDialogProps) {
           : "La máquina te ha dado jaque mate."
         : `Ganan las ${winner === "w" ? "blancas" : "negras"}.`;
     icon = <Trophy className="h-10 w-10" />;
-    accent = youWon || mode.type === "human" ? "emerald" : "rose";
+    accent = youWon || mode.type === "human" ? "green" : "wine";
   } else if (status === "stalemate") {
     title = "Ahogado";
     subtitle = "La partida termina en tablas (ahogado).";
     icon = <Handshake className="h-10 w-10" />;
-    accent = "amber";
+    accent = "gold";
   } else if (status === "draw") {
     title = "Tablas";
     subtitle = "La partida termina en empate.";
     icon = <Handshake className="h-10 w-10" />;
-    accent = "amber";
+    accent = "gold";
   } else if (status === "resigned") {
     const youResigned = mode.type === "ai" ? winner !== mode.playerColor : false;
     title = mode.type === "ai" ? (youResigned ? "Te rendiste" : "¡Victoria!") : "Rendición";
@@ -72,13 +74,13 @@ export function GameOverDialog({ onNewGame, onRematch }: GameOverDialogProps) {
           : "La máquina se rindió."
         : `Ganan las ${winner === "w" ? "blancas" : "negras"}.`;
     icon = <Flag className="h-10 w-10" />;
-    accent = youResigned ? "rose" : "emerald";
+    accent = youResigned ? "wine" : "green";
   }
 
   const accentMap: Record<string, string> = {
-    emerald: "from-emerald-500 to-teal-600 text-white",
-    rose: "from-rose-500 to-red-600 text-white",
-    amber: "from-amber-500 to-orange-600 text-white",
+    green: "from-[#35513F] to-[#22362B] text-[#F3EBD8]",
+    wine: "from-[#7A2E2B] to-[#4E1B19] text-[#F3EBD8]",
+    gold: "from-[#A98A4F] to-[#7A5F2E] text-[#241C16]",
   };
 
   // Compute stats
@@ -114,8 +116,8 @@ export function GameOverDialog({ onNewGame, onRematch }: GameOverDialogProps) {
           >
             {icon}
           </motion.div>
-          <h2 className="mt-3 text-2xl font-bold text-white">{title}</h2>
-          <p className="mt-1 text-sm text-white/85 px-6 text-center">
+          <h2 className="mt-3 text-3xl font-display font-semibold">{title}</h2>
+          <p className="mt-1 text-sm opacity-85 px-6 text-center">
             {subtitle}
           </p>
         </motion.div>
@@ -207,7 +209,7 @@ export function GameOverDialog({ onNewGame, onRematch }: GameOverDialogProps) {
           <div className="flex gap-2 pt-1">
             <Button
               onClick={onRematch}
-              className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="flex-1 h-11 bg-accent-green hover:bg-accent-green/90 text-[#F3EBD8]"
             >
               <Crown className="h-4 w-4 mr-2" />
               Revancha
@@ -257,18 +259,15 @@ const CAPTURED_GLYPHS: Record<PieceType, string> = {
 };
 
 function CapturedGlyph({ type, color }: { type: PieceType; color: PieceColor }) {
+  void CAPTURED_GLYPHS;
+  const pieceSetId = useSettings((s) => s.pieceSet);
   return (
     <span
-      className={cn(
-        "text-base leading-none",
-      )}
-      style={{
-        color: color === "w" ? "#f8fafc" : "#1e1b2e",
-        WebkitTextStroke: color === "w" ? "0.8px #1e1b2e" : "0.8px #0a0a0f",
-      }}
+      className={cn("leading-none inline-flex")}
+      style={{ fontSize: "15px" }}
       title={PIECE_NAMES[type]}
     >
-      {CAPTURED_GLYPHS[type]}
+      <ChessPiece type={type} color={color} pieceSet={pieceSetId} />
     </span>
   );
 }

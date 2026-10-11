@@ -43,9 +43,9 @@ export function ReviewBar() {
   const pct = reviewTotal > 0 ? (reviewPly / reviewTotal) * 100 : 0;
 
   return (
-    <div className="rounded-xl border border-indigo-500/40 bg-indigo-500/5 p-2.5 space-y-2">
+    <div className="rounded-xl border border-accent-plum/40 bg-accent-plum/5 p-2.5 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+        <span className="text-[10px] font-semibold text-accent-plum dark:text-accent-plum-soft uppercase tracking-wider">
           Modo repaso
         </span>
         <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
@@ -63,7 +63,7 @@ export function ReviewBar() {
       {/* Progress bar with scrub */}
       <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
         <motion.div
-          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
+          className="h-full bg-gradient-to-r from-[#7A5A6E] to-[#4E3846]"
           animate={{ width: `${pct}%` }}
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
         />

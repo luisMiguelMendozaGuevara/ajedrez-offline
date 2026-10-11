@@ -1,6 +1,8 @@
 "use client";
 
-import { PieceColor, PieceType, PIECE_VALUES, PIECE_SYMBOLS } from "@/lib/chess/types";
+import { PieceColor, PieceType, PIECE_VALUES } from "@/lib/chess/types";
+import { useSettings } from "@/hooks/useSettings";
+import { ChessPiece } from "./ChessPiece";
 
 interface CapturedPiecesProps {
   captured: PieceType[];
@@ -16,6 +18,8 @@ export function CapturedPieces({
   ownerColor,
   opponentCaptured,
 }: CapturedPiecesProps) {
+  const pieceSetId = useSettings((s) => s.pieceSet);
+
   // Sort captured by value descending
   const sorted = [...captured].sort(
     (a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)
@@ -27,26 +31,18 @@ export function CapturedPieces({
   const diff = Math.round((myScore - oppScore) / 100);
 
   return (
-    <div className="flex items-center gap-1 min-h-[18px] flex-wrap">
+    <div className="flex items-center min-h-[18px] flex-wrap">
       {sorted.length === 0 ? (
         <span className="text-[10px] text-muted-foreground/60">—</span>
       ) : (
         sorted.map((p, i) => (
-          <span
-            key={i}
-            className="text-base leading-none -mr-1"
-            style={{
-              color: ownerColor === "w" ? "#f8fafc" : "#1e1b2e",
-              WebkitTextStroke:
-                ownerColor === "w" ? "0.8px #1e1b2e" : "0.8px #0a0a0f",
-            }}
-          >
-            {PIECE_SYMBOLS.b[p]}
+          <span key={i} className="-mr-1" style={{ fontSize: "15px" }}>
+            <ChessPiece type={p} color={ownerColor} pieceSet={pieceSetId} />
           </span>
         ))
       )}
       {diff > 0 && (
-        <span className="text-[10px] font-semibold text-emerald-400 ml-1">
+        <span className="text-[10px] font-semibold text-accent-green dark:text-accent-green-soft ml-1.5">
           +{diff}
         </span>
       )}

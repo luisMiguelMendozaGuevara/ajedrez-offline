@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useChessGame } from "@/hooks/useChessGame";
+import { useSettings } from "@/hooks/useSettings";
 import { ChessPiece } from "./ChessPiece";
 import { PieceType } from "@/lib/chess/types";
 import { motion } from "framer-motion";
@@ -26,6 +27,8 @@ export function PromotionDialog() {
   const choosePromotion = useChessGame((s) => s.choosePromotion);
   const cancelPromotion = useChessGame((s) => s.cancelPromotion);
   const state = useChessGame((s) => s.state);
+  const pieceSetId = useSettings((s) => s.pieceSet);
+  const pieceStyleId = useSettings((s) => s.pieceStyle);
 
   const color = promotionPending ? state.turn : "w";
 
@@ -54,10 +57,15 @@ export function PromotionDialog() {
               transition={{ delay: i * 0.05 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => choosePromotion(type)}
-              className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card p-3 hover:bg-accent hover:border-emerald-500/60 transition-colors"
+              className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card p-3 hover:bg-accent hover:border-accent-gold/70 transition-colors"
             >
               <span className="text-3xl leading-none">
-                <ChessPiece type={type} color={color} />
+                <ChessPiece
+                  type={type}
+                  color={color}
+                  pieceSet={pieceSetId}
+                  pieceStyle={pieceStyleId}
+                />
               </span>
               <span className="text-[10px] font-medium text-muted-foreground">
                 {LABELS[type]}

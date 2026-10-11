@@ -31,7 +31,6 @@ export function ChessClock({ color }: ChessClockProps) {
   const timeControl = useChessGame((s) => s.mode.timeControl);
 
   const time = color === "w" ? whiteTime : blackTime;
-  const isActive = turn === color && status === "playing" && status === "check";
 
   // Local state to re-render the clock smoothly every 200ms while active
   const [, setTick] = useState(0);
@@ -61,11 +60,11 @@ export function ChessClock({ color }: ChessClockProps) {
       className={cn(
         "rounded-lg px-2.5 py-1 font-mono text-sm font-bold tabular-nums transition-colors min-w-[58px] text-center",
         out
-          ? "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+          ? "bg-accent-wine/20 text-accent-wine dark:text-accent-wine-soft"
           : low
-            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+            ? "bg-accent-gold/20 text-accent-gold dark:text-accent-gold-soft"
             : active
-              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+              ? "bg-accent-green/15 text-accent-green dark:text-accent-green-soft"
               : "bg-muted/60 text-muted-foreground"
       )}
     >
