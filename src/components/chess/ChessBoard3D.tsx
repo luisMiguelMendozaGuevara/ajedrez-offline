@@ -861,6 +861,9 @@ export default function ChessBoard3D({
           prev.delete(key);
         }
         const group = new THREE.Group();
+        // Black pieces face the opposite way (towards the white side), like on
+        // a real board.
+        if (piece.color === "b") group.rotation.y = Math.PI;
         const mat = piece.color === "w" ? MAT_LIGHT : MAT_DARK;
         const modelGeom = modelsRef.current[piece.type];
         const geoms = modelGeom ? [modelGeom] : getGeoms()[piece.type];
