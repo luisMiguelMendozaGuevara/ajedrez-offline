@@ -141,7 +141,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                     fontSize: size
                       ? `${size * 0.082}px`
                       : iso
-                        ? "clamp(1.9rem, 9.6vw, 3.3rem)"
+                        ? "min(calc((100vw - 32px) / 12.16), 52.5px)"
                         : "clamp(1.8rem, 8.9vw, 3.1rem)",
                     transformStyle: iso ? "preserve-3d" : undefined,
                   }}
@@ -234,7 +234,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                             width: "58%",
                             height: "22%",
                             left: "21%",
-                            bottom: "14%",
+                            top: "39%",
                             borderRadius: "50%",
                             background: "rgba(18,12,8,0.35)",
                             filter: "blur(1.5px)",
@@ -258,7 +258,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                             iso
                               ? {
                                   transform:
-                                    "rotateZ(-45deg) rotateX(-55deg)",
+                                    "translateY(-50%) rotateZ(-45deg) rotateX(-55deg)",
                                   transformOrigin: "50% 100%",
                                   transformStyle: "preserve-3d",
                                 }
