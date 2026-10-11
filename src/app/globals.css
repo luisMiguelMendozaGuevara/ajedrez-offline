@@ -188,11 +188,11 @@
 @keyframes piece-setup-in {
   0% {
     opacity: 0;
-    transform: translateY(-9px) scale(0.45);
+    transform: translateY(-14px) scale(0.3);
   }
   65% {
     opacity: 1;
-    transform: translateY(1px) scale(1.04);
+    transform: translateY(1px) scale(1.06);
   }
   100% {
     opacity: 1;
@@ -201,11 +201,5 @@
 }
 
 .piece-setup-in {
-  animation: piece-setup-in 0.38s cubic-bezier(0.22, 0.9, 0.3, 1.15) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .piece-setup-in {
-    animation: none;
-  }
+  animation: piece-setup-in 0.45s cubic-bezier(0.22, 0.9, 0.3, 1.15) both;
 }
