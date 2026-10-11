@@ -51,6 +51,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   const pieceStyleId = useSettings((s) => s.pieceStyle);
   const showCoordinates = useSettings((s) => s.showCoordinates);
   const highlightLastMove = useSettings((s) => s.highlightLastMove);
+  const boardView = useSettings((s) => s.boardView);
 
   // Board setup animation: plays when a new game starts
   const gameId = useChessGame((s) => s.gameId);
@@ -69,6 +70,7 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   }, [setupAnim]);
 
   const theme = getBoardTheme(boardThemeId);
+  const iso = boardView === "iso";
   const checkSquare = isKingInCheckSquare(state, state.turn);
 
   // Build the visual ordering of rows/cols based on orientation
@@ -94,33 +96,8 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
   }
   void reviewMode;
 
-  return (
-    <div
-      className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl"
-      style={{
-        background: theme.border,
-        padding: "clamp(5px, 1.3vw, 10px)",
-        maxWidth: "min(100vw - 8px, 540px, 62vh)",
-        aspectRatio: "1 / 1",
-        boxShadow:
-          "0 18px 40px -18px rgba(28,21,15,0.75), inset 0 0 0 1px rgba(198,161,91,0.45)",
-      }}
-    >
-      <div
-        className="relative w-full h-full rounded-md overflow-hidden"
-        style={{
-          boxShadow: "inset 0 0 0 1px rgba(198,161,91,0.6), inset 0 2px 8px rgba(28,21,15,0.35)",
-        }}
-      >
-        <div
-          className="grid w-full h-full"
-          style={{
-            gridTemplateColumns: "repeat(8, 1fr)",
-            gridTemplateRows: "repeat(8, 1fr)",
-          }}
-        >
-          {rows.map((r) =>
-            cols.map((c) => {
+  const squares = rows.map((r) =>
+    cols.map((c) => {
               const isLight = (r + c) % 2 === 0;
               const piece = state.board[r][c];
               const isSelected =
@@ -161,7 +138,12 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                   )}
                   style={{
                     backgroundColor: isLight ? theme.light : theme.dark,
-                    fontSize: size ? `${size * 0.082}px` : "clamp(1.8rem, 8.9vw, 3.1rem)",
+                    fontSize: size
+                      ? `${size * 0.082}px`
+                      : iso
+                        ? "clamp(1.9rem, 9.6vw, 3.3rem)"
+                        : "clamp(1.8rem, 8.9vw, 3.1rem)",
+                    transformStyle: iso ? "preserve-3d" : undefined,
                   }}
                   aria-label={`Casilla ${fileChar}${rankNum}`}
                 >
@@ -244,28 +226,63 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
 
                   {/* piece (hidden in blindfold mode unless selected) */}
                   {piece && (!blindfold || isSelected) && (
-                    <motion.span
-                      key={gameId}
-                      layoutId={`piece-${r}-${c}-${piece.type}-${piece.color}`}
-                      className="relative z-10"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    >
-                      <span
-                        className={cn("block", setupAnim && "piece-setup-in")}
-                        style={
-                          setupAnim
-                            ? { animationDelay: `${setupDelay(r, c)}s` }
-                            : undefined
-                        }
-                      >
-                        <ChessPiece
-                          type={piece.type}
-                          color={piece.color}
-                          pieceSet={pieceSetId}
-                          pieceStyle={pieceStyleId}
+                    <>
+                      {iso && (
+                        <span
+                          className="absolute pointer-events-none"
+                          style={{
+                            width: "58%",
+                            height: "22%",
+                            left: "21%",
+                            bottom: "14%",
+                            borderRadius: "50%",
+                            background: "rgba(18,12,8,0.35)",
+                            filter: "blur(1.5px)",
+                          }}
                         />
-                      </span>
-                    </motion.span>
+                      )}
+                      <motion.span
+                        key={gameId}
+                        layoutId={
+                          iso
+                            ? undefined
+                            : `piece-${r}-${c}-${piece.type}-${piece.color}`
+                        }
+                        className="relative z-10"
+                        style={iso ? { transformStyle: "preserve-3d" } : undefined}
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      >
+                        <span
+                          className="block"
+                          style={
+                            iso
+                              ? {
+                                  transform:
+                                    "rotateZ(-45deg) rotateX(-55deg)",
+                                  transformOrigin: "50% 100%",
+                                  transformStyle: "preserve-3d",
+                                }
+                              : undefined
+                          }
+                        >
+                          <span
+                            className={cn("block", setupAnim && "piece-setup-in")}
+                            style={
+                              setupAnim
+                                ? { animationDelay: `${setupDelay(r, c)}s` }
+                                : undefined
+                            }
+                          >
+                            <ChessPiece
+                              type={piece.type}
+                              color={piece.color}
+                              pieceSet={pieceSetId}
+                              pieceStyle={pieceStyleId}
+                            />
+                          </span>
+                        </span>
+                      </motion.span>
+                    </>
                   )}
 
                   {/* legal move indicator */}
@@ -278,29 +295,134 @@ export function ChessBoard({ size, blindfold = false }: ChessBoardProps) {
                 </button>
               );
             })
-          )}
+  );
+
+  const thinkingBadge = (
+    <AnimatePresence>
+      {thinking && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          className="absolute top-2 right-2 z-30 flex items-center gap-2 rounded-sm bg-[#241c16]/90 px-3 py-1.5 backdrop-blur shadow-lg ring-1 ring-accent-gold/40"
+        >
+          <span className="flex gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce [animation-delay:-0.2s]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce [animation-delay:-0.1s]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce" />
+          </span>
+          <span className="text-[11px] font-medium text-[#efe3cf]">
+            Pensando…
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  // Isometric 2.5D view: tilted board with the pieces standing on it.
+  if (iso) {
+    return (
+      <div
+        className="relative w-full mx-auto"
+        style={{
+          maxWidth: "min(100vw - 8px, 640px)",
+          height: "min(calc((100vw - 8px) * 0.72), 470px)",
+        }}
+      >
+        {thinkingBadge}
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ perspective: "1900px", perspectiveOrigin: "50% 42%" }}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "min(calc((100vw - 32px) / 1.52), 420px)",
+              height: "min(calc((100vw - 32px) / 1.52), 420px)",
+              transformStyle: "preserve-3d",
+              transform: "rotateX(55deg) rotateZ(45deg)",
+            }}
+          >
+            {/* board thickness */}
+            <div
+              style={{
+                position: "absolute",
+                inset: "-7px",
+                borderRadius: 14,
+                background: "#241C16",
+                transform: "translateZ(-18px)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: "-7px",
+                borderRadius: 14,
+                background: theme.border,
+                transform: "translateZ(-9px)",
+              }}
+            />
+            {/* top frame */}
+            <div
+              style={{
+                position: "absolute",
+                inset: "-7px",
+                borderRadius: 14,
+                background: theme.border,
+                boxShadow: "inset 0 0 0 1px rgba(198,161,91,0.45)",
+              }}
+            />
+            <div
+              className="grid w-full h-full"
+              style={{
+                gridTemplateColumns: "repeat(8, 1fr)",
+                gridTemplateRows: "repeat(8, 1fr)",
+                transformStyle: "preserve-3d",
+              }}
+            >
+              {squares}
+            </div>
+          </div>
+        </div>
+        {status === "check" && (
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-accent-gold-soft text-xs font-semibold drop-shadow font-display">
+            ¡Jaque!
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="relative w-full mx-auto rounded-2xl overflow-hidden shadow-2xl"
+      style={{
+        background: theme.border,
+        padding: "clamp(5px, 1.3vw, 10px)",
+        maxWidth: "min(100vw - 8px, 540px, 62vh)",
+        aspectRatio: "1 / 1",
+        boxShadow:
+          "0 18px 40px -18px rgba(28,21,15,0.75), inset 0 0 0 1px rgba(198,161,91,0.45)",
+      }}
+    >
+      <div
+        className="relative w-full h-full rounded-md overflow-hidden"
+        style={{
+          boxShadow: "inset 0 0 0 1px rgba(198,161,91,0.6), inset 0 2px 8px rgba(28,21,15,0.35)",
+        }}
+      >
+        <div
+          className="grid w-full h-full"
+          style={{
+            gridTemplateColumns: "repeat(8, 1fr)",
+            gridTemplateRows: "repeat(8, 1fr)",
+          }}
+        >
+          {squares}
         </div>
 
         {/* thinking overlay */}
-        <AnimatePresence>
-          {thinking && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="absolute top-2 right-2 z-30 flex items-center gap-2 rounded-sm bg-[#241c16]/90 px-3 py-1.5 backdrop-blur shadow-lg ring-1 ring-accent-gold/40"
-            >
-              <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce [animation-delay:-0.2s]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce [animation-delay:-0.1s]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-gold-soft animate-bounce" />
-              </span>
-              <span className="text-[11px] font-medium text-[#efe3cf]">
-                Pensando…
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {thinkingBadge}
       </div>
 
       {status === "check" && (

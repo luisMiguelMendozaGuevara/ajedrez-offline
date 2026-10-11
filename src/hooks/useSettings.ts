@@ -4,6 +4,7 @@ import { create } from "zustand";
 import {
   AppSettings,
   BoardThemeId,
+  BoardViewId,
   PieceSetId,
   PieceStyleId,
   UiAccentId,
@@ -18,6 +19,7 @@ interface SettingsStore extends AppSettings {
   setPieceSet: (set: PieceSetId) => void;
   setPieceStyle: (style: PieceStyleId) => void;
   setUiAccent: (accent: UiAccentId) => void;
+  setBoardView: (view: BoardViewId) => void;
   toggleCoordinates: () => void;
   toggleSound: () => void;
   toggleHaptics: () => void;
@@ -56,6 +58,10 @@ export const useSettings = create<SettingsStore>((set, get) => ({
     set({ uiAccent });
     persist(get());
     applyUiAccent(uiAccent);
+  },
+  setBoardView: (boardView) => {
+    set({ boardView });
+    persist(get());
   },
   toggleCoordinates: () => {
     set({ showCoordinates: !get().showCoordinates });
@@ -100,6 +106,7 @@ function loadSettingsSafe(): AppSettings {
       pieceSet: "merida",
       pieceStyle: "staunton",
       uiAccent: "verde",
+      boardView: "flat",
       showCoordinates: true,
       soundEnabled: true,
       hapticsEnabled: true,

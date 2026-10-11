@@ -428,6 +428,7 @@ export interface AppSettings {
   pieceSet: PieceSetId;
   pieceStyle: PieceStyleId;
   uiAccent: UiAccentId;
+  boardView: BoardViewId;
   showCoordinates: boolean;
   soundEnabled: boolean;
   hapticsEnabled: boolean;
@@ -438,6 +439,13 @@ export interface AppSettings {
 }
 
 export type UiAccentId = "verde" | "azul" | "ciruela" | "bronce";
+
+export type BoardViewId = "flat" | "iso";
+
+export const BOARD_VIEWS: { id: BoardViewId; label: string; desc: string }[] = [
+  { id: "flat", label: "Clásica", desc: "Tablero 2D de siempre" },
+  { id: "iso", label: "Isométrica 3D", desc: "Tablero inclinado con piezas de pie" },
+];
 
 export const UI_ACCENTS: { id: UiAccentId; label: string; dot: string }[] = [
   { id: "verde", label: "Verde botella", dot: "#35513F" },
@@ -451,6 +459,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   pieceSet: "merida",
   pieceStyle: "staunton",
   uiAccent: "verde",
+  boardView: "flat",
   showCoordinates: true,
   soundEnabled: true,
   hapticsEnabled: true,
@@ -463,6 +472,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 const PIECE_STYLE_IDS = PIECE_STYLES.map((p) => p.id);
 const PIECE_SET_IDS = PIECE_SETS_META.map((p) => p.id);
 const UI_ACCENT_IDS = UI_ACCENTS.map((a) => a.id);
+const BOARD_VIEW_IDS = BOARD_VIEWS.map((v) => v.id);
 const MUSIC_TRACK_IDS: MusicTrackId[] = [
   "vintage",
   "retro",
@@ -488,6 +498,9 @@ export function loadSettings(): AppSettings {
     }
     if (!UI_ACCENT_IDS.includes(merged.uiAccent)) {
       merged.uiAccent = DEFAULT_SETTINGS.uiAccent;
+    }
+    if (!BOARD_VIEW_IDS.includes(merged.boardView)) {
+      merged.boardView = DEFAULT_SETTINGS.boardView;
     }
     if (!MUSIC_TRACK_IDS.includes(merged.musicTrack)) {
       merged.musicTrack = DEFAULT_SETTINGS.musicTrack;

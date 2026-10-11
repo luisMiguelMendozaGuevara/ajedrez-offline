@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronUp,
+  Box,
   History,
   Sun,
   Moon,
@@ -69,6 +70,8 @@ export default function Home() {
   const history = useChessGame((s) => s.history);
   const status = useChessGame((s) => s.status);
   const reviewMode = useChessGame((s) => s.reviewMode);
+  const boardView = useSettings((s) => s.boardView);
+  const setBoardView = useSettings((s) => s.setBoardView);
 
   // Check for a saved game on mount
   useEffect(() => {
@@ -349,6 +352,21 @@ export default function Home() {
                       Mostrar barra de evaluación
                     </Button>
                   )}
+
+                  {/* Board view toggle (flat / isometric 3D) */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-8 text-[11px] text-muted-foreground"
+                    onClick={() =>
+                      setBoardView(boardView === "iso" ? "flat" : "iso")
+                    }
+                  >
+                    <Box className="h-3.5 w-3.5 mr-1.5" />
+                    {boardView === "iso"
+                      ? "Usar vista clásica"
+                      : "Vista isométrica 3D"}
+                  </Button>
 
                   {/* Review bar (repaso de partida) */}
                   {!reviewMode && <ReviewBar />}

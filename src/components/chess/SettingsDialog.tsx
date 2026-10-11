@@ -9,6 +9,7 @@ import {
 import { useSettings, getBoardTheme } from "@/hooks/useSettings";
 import {
   BOARD_THEMES,
+  BOARD_VIEWS,
   BoardThemeId,
   PIECE_SETS_META,
   PIECE_STYLES,
@@ -30,6 +31,7 @@ import {
   Type,
   Highlighter,
   FlipHorizontal,
+  Box,
   Trash2,
   Trophy,
   BarChart3,
@@ -190,6 +192,64 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     <span className="text-[9px] font-medium text-muted-foreground leading-none text-center">
                       {t.name}
                     </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="h-px bg-border/60" />
+
+          {/* Board view (flat / isometric 3D) */}
+          <section>
+            <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
+              <Box className="h-3.5 w-3.5" />
+              Vista del tablero
+            </h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {BOARD_VIEWS.map((v) => {
+                const active = settings.boardView === v.id;
+                const t = getBoardTheme(settings.boardTheme);
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => settings.setBoardView(v.id)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border-2 px-2.5 py-2 transition-all text-left",
+                      active
+                        ? "border-accent-gold bg-accent-gold/10"
+                        : "border-border bg-card hover:border-border/80"
+                    )}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center">
+                      {v.id === "iso" ? (
+                        <span
+                          className="block h-5 w-5 rounded-[3px] ring-1 ring-black/15"
+                          style={{
+                            background: `linear-gradient(135deg, ${t.light} 49%, ${t.dark} 50%)`,
+                            transform: "rotateX(55deg) rotateZ(45deg)",
+                          }}
+                        />
+                      ) : (
+                        <span className="grid grid-cols-2 grid-rows-2 h-6 w-6 rounded overflow-hidden ring-1 ring-black/15">
+                          <span style={{ background: t.light }} />
+                          <span style={{ background: t.dark }} />
+                          <span style={{ background: t.dark }} />
+                          <span style={{ background: t.light }} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-medium">
+                        {v.label}
+                      </span>
+                      <span className="block text-[9px] text-muted-foreground leading-tight">
+                        {v.desc}
+                      </span>
+                    </span>
+                    {active && (
+                      <Check className="ml-auto h-3 w-3 shrink-0 text-accent-gold dark:text-accent-gold-soft" />
+                    )}
                   </button>
                 );
               })}
