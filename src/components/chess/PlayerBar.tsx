@@ -5,7 +5,7 @@ import { CapturedPieces } from "./CapturedPieces";
 import { ChessClock } from "./ChessClock";
 import { PieceColor, PieceType } from "@/lib/chess/types";
 import { cn } from "@/lib/utils";
-import { Crown, Bot, User, Users } from "lucide-react";
+import { Crown, Bot, User, Users, Trophy } from "lucide-react";
 
 interface PlayerBarProps {
   color: PieceColor;
@@ -19,9 +19,11 @@ export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
   const capturedByBlack = useChessGame((s) => s.capturedByBlack);
   const status = useChessGame((s) => s.status);
   const thinking = useChessGame((s) => s.thinking);
+  const winner = useChessGame((s) => s.winner);
   const timeControl = useChessGame((s) => s.mode.timeControl);
 
   const isActive = turn === color && status !== "checkmate" && status !== "stalemate" && status !== "draw" && status !== "resigned";
+  const isWinner = !!winner && winner === color;
 
   // Captured pieces shown next to a player are the pieces THEY captured
   const myCaptured: PieceType[] = color === "w" ? capturedByWhite : capturedByBlack;
@@ -34,9 +36,11 @@ export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
     <div
       className={cn(
         "flex items-center justify-between gap-3 rounded-xl px-3 py-2 border transition-all",
-        isActive
-          ? "border-accent-green/80 bg-accent-green/25 shadow-md ring-1 ring-accent-green/30"
-          : "border-border/60 bg-card/60"
+        isWinner
+          ? "border-accent-green bg-accent-green/40 shadow-lg ring-2 ring-accent-green/50"
+          : isActive
+            ? "border-accent-green/80 bg-accent-green/25 shadow-md ring-1 ring-accent-green/30"
+            : "border-border/60 bg-card/60"
       )}
     >
       <div className="flex items-center gap-2.5 min-w-0">
@@ -57,6 +61,9 @@ export function PlayerBar({ color, label, icon = "user" }: PlayerBarProps) {
               <Crown className="h-3 w-3 text-accent-gold" />
             ) : (
               <Crown className="h-3 w-3 text-muted-foreground/70" />
+            )}
+            {isWinner && (
+              <Trophy className="h-3.5 w-3.5 text-accent-gold" />
             )}
           </div>
           <div className="mt-0.5">

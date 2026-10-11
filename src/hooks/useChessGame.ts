@@ -388,6 +388,13 @@ export const useChessGame = create<ChessStore>((set, get) => ({
       if (status === "checkmate") {
         playSound("mate", settings.soundEnabled);
         playHaptic([30, 50, 30, 50, 80], settings.hapticsEnabled);
+        // Victory fanfare when a human wins (always in two-player mode)
+        const humanWon =
+          mode.type === "human" ||
+          (mode.type === "ai" && winner === mode.playerColor);
+        if (humanWon && settings.soundEnabled) {
+          setTimeout(() => playSound("victory", true), 850);
+        }
       } else if (status === "check") {
         playSound("check", settings.soundEnabled);
         playHaptic([20, 30, 20], settings.hapticsEnabled);
@@ -576,6 +583,10 @@ export const useChessGame = create<ChessStore>((set, get) => ({
     const settings = useSettings.getState();
     playSound("gameEnd", settings.soundEnabled);
     playHaptic([30, 50, 80], settings.hapticsEnabled);
+    // Victory fanfare in two-player games (the opponent wins by resignation)
+    if (mode.type === "human" && settings.soundEnabled) {
+      setTimeout(() => playSound("victory", true), 650);
+    }
     // Record a loss for the human (AI mode)
     if (mode.type === "ai" && !statsRecorded) {
       recordGame("loss", state.fullmoveNumber, true, mode.difficulty);

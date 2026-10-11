@@ -11,6 +11,7 @@ export type SoundName =
   | "capture"
   | "check"
   | "mate"
+  | "victory"
   | "castle"
   | "promote"
   | "select"
@@ -168,6 +169,17 @@ export function playSound(name: SoundName, enabled: boolean): void {
       tone(523.25, 170, "triangle", 0.09, 0.31);
       tone(392, 320, "triangle", 0.1, 0.48);
       tone(130.81, 750, "sine", 0.07, 0.48);
+      break;
+    }
+    case "victory": {
+      // Triumphant fanfare: ascending triad ending on a sustained high note
+      tone(523.25, 130, "triangle", 0.1, 0);
+      tone(659.25, 130, "triangle", 0.1, 0.11);
+      tone(783.99, 130, "triangle", 0.1, 0.22);
+      tone(1046.5, 430, "triangle", 0.12, 0.33);
+      tone(523.25, 430, "triangle", 0.06, 0.33);
+      tone(261.63, 520, "sine", 0.08, 0.33);
+      noiseHit(300, 7000, 0.03, 0.33, 0.6);
       break;
     }
     case "promote": {

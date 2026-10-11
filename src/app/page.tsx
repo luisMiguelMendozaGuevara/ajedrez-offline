@@ -95,6 +95,26 @@ export default function Home() {
     if (finished && prev === "playing") {
       // Slight delay so stats are persisted first
       const t = setTimeout(() => {
+        // Winner notification (fresh state: winner/mode were just set)
+        const { winner, mode: currentMode } = useChessGame.getState();
+        if (winner) {
+          let msg: string;
+          if (currentMode.type === "ai") {
+            msg =
+              winner === currentMode.playerColor
+                ? "¡Victoria! Ganaste la partida"
+                : "Gana la máquina — ¡suerte la próxima!";
+          } else {
+            msg =
+              winner === "w"
+                ? "¡Gana Jugador 1 (blancas)!"
+                : "¡Gana Jugador 2 (negras)!";
+          }
+          toast.success(msg, {
+            description:
+              status === "resigned" ? "Victoria por abandono" : "Jaque mate",
+          });
+        }
         const newly = checkNewAchievements();
         newly.forEach((a, i) => {
           setTimeout(() => {
